@@ -5,11 +5,24 @@
 #include <QLineEdit>
 #include <QLabel>
 #include <QApplication>
+#include <QString>
+#include <QMessageBox>
+
+bool validateLogin(const QString &role, const QString &username, const QString &password){
+    if (role == "Passenger" && username == "passenger" && password == "1234") {
+        return true;
+    }
+    if (role == "Staff" && username == "staff" && password == "abcd") {
+        return true;
+    }
+    return false;
+}
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent) {
 
     setWindowTitle("Flight and Airport Management System");
+    setWindowIcon(QIcon("D:/Work Environment/Projects/flight_airport_system/icon.png"));
     resize(900, 500);
 
     // Global stylesheet for beauty
@@ -92,6 +105,18 @@ MainWindow::MainWindow(QWidget *parent)
     pLayout->addWidget(pLogin);
     pLayout->addWidget(pBack);
 
+    connect(pPass, &QLineEdit::returnPressed, [=]() {
+        QString user = pUser->text();
+        QString pass = pPass->text();
+
+        if (validateLogin("Passenger", user, pass)) {   
+            stack->setCurrentWidget(passengerPortalPage);
+        } else {
+            QMessageBox::warning(this, "Login Failed", "Invalid Passenger credentials.");
+        }
+        pUser->clear();
+        pPass->clear();
+    });
     connect(pBack, &QPushButton::clicked, this, &MainWindow::goBack);
 
     stack->addWidget(passengerLoginPage);
@@ -119,10 +144,29 @@ MainWindow::MainWindow(QWidget *parent)
     sLayout->addWidget(sLogin);
     sLayout->addWidget(sBack);
 
-    connect(sBack, &QPushButton::clicked, this, &MainWindow::goBack);
+    connect(sLogin, &QPushButton::clicked, [=]() {
+        QString user = sUser->text();
+        QString pass = sPass->text();
 
+        if (validateLogin("Passenger", user, pass)) {
+            stack->setCurrentWidget(staffPortalPage);
+        } else {
+            QMessageBox::warning(this, "Login Failed", "Invalid credentials.");
+        }
+        pUser->clear();
+        pPass->clear();
+    });
+    connect(sBack, &QPushButton::clicked, this, &MainWindow::goBack);
+    
     stack->addWidget(staffLoginPage);
 
+    // --Passenger Portal Page--
+    passengerPortalPage = new QWidget;
+    QVBoxLayout *plLayout = new QVBoxLayout(passengerPortalPage);
+    stack->addWidget(passengerPortalPage);
+    
+    QLabel *hi = new QLabel("hi");
+    plLayout->addWidget(hi);
     // Start at menu
     stack->setCurrentWidget(menuPage);
 }
