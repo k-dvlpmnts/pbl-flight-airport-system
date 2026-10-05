@@ -9,7 +9,7 @@
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent) {
 
-    setWindowTitle("Portal Menu");
+    setWindowTitle("Flight and Airport Management System");
     resize(900, 500);
 
     // Global stylesheet for beauty
