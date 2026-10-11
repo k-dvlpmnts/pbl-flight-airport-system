@@ -31,7 +31,7 @@
 #include <QSet>
 #include <QDebug>
 
-static const QString SERVER_BASE = QStringLiteral("http://127.0.0.1:8080"); // replace with your server IP/host
+static const QString SERVER_BASE = QStringLiteral("http://172.16.71.220:8080"); // Adjust to your server IP
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),
@@ -40,6 +40,7 @@ MainWindow::MainWindow(QWidget *parent)
       passengerLoginPage(nullptr),
       staffLoginPage(nullptr),
       passengerPortalPage(nullptr),
+      staffPortalPage(nullptr),
       ticketing(nullptr),
       fromCombo(nullptr),
       toCombo(nullptr),
@@ -58,6 +59,7 @@ MainWindow::MainWindow(QWidget *parent)
     resize(900, 500);
 
     // Basic stylesheet
+    // Corrected stylesheet syntax using standard R"( ... )"
     setStyleSheet(R"(
         QWidget {
             background-color: #F5F0EC;
@@ -86,8 +88,6 @@ MainWindow::MainWindow(QWidget *parent)
             font-weight: 600;
         }
     )");
-
-    // Central stacked widget
     stack = new QStackedWidget(this);
     setCentralWidget(stack);
 
@@ -131,15 +131,19 @@ MainWindow::MainWindow(QWidget *parent)
     pLayout->addWidget(pPass);
 
     QPushButton *pLogin = new QPushButton("Login");
+    QPushButton *pRegister = new QPushButton("Create Account");
     QPushButton *pBack = new QPushButton("Back");
+    
     pLayout->addWidget(pLogin);
+    pLayout->addWidget(pRegister);
     pLayout->addWidget(pBack);
 
     connect(pBack, &QPushButton::clicked, this, &MainWindow::goBack);
     connect(pLogin, &QPushButton::clicked, this, [this]() {
-        QString user = pUser->text().trimmed();
-        QString pass = pPass->text();
-        validateUser(user, pass, /*isStaff=*/false);
+        validateUser(pUser->text().trimmed(), pPass->text(), false);
+    });
+    connect(pRegister, &QPushButton::clicked, this, [this]() {
+        registerUser(pUser->text().trimmed(), pPass->text(), false);
     });
 
     stack->addWidget(passengerLoginPage);
@@ -162,15 +166,19 @@ MainWindow::MainWindow(QWidget *parent)
     sLayout->addWidget(sPass);
 
     QPushButton *sLogin = new QPushButton("Login");
+    QPushButton *sRegister = new QPushButton("Create Account");
     QPushButton *sBack = new QPushButton("Back");
+
     sLayout->addWidget(sLogin);
+    sLayout->addWidget(sRegister);
     sLayout->addWidget(sBack);
 
     connect(sBack, &QPushButton::clicked, this, &MainWindow::goBack);
     connect(sLogin, &QPushButton::clicked, this, [this]() {
-        QString user = sUser->text().trimmed();
-        QString pass = sPass->text();
-        validateUser(user, pass, /*isStaff=*/true);
+        validateUser(sUser->text().trimmed(), sPass->text(), true);
+    });
+    connect(sRegister, &QPushButton::clicked, this, [this]() {
+        registerUser(sUser->text().trimmed(), sPass->text(), true);
     });
 
     stack->addWidget(staffLoginPage);
@@ -184,6 +192,15 @@ MainWindow::MainWindow(QWidget *parent)
     plLayout->addWidget(track);
     connect(book, &QPushButton::clicked, this, &MainWindow::ticket);
     stack->addWidget(passengerPortalPage);
+
+    // -- Staff Portal Page --
+    staffPortalPage = new QWidget;
+    QVBoxLayout *slLayout = new QVBoxLayout(staffPortalPage);
+    QLabel *staffLabel = new QLabel("Staff Management Portal");
+    staffLabel->setAlignment(Qt::AlignCenter);
+    staffLabel->setStyleSheet("font-size: 20px; font-weight: bold; color: #B06058;");
+    slLayout->addWidget(staffLabel);
+    stack->addWidget(staffPortalPage);
 
     // -- Ticketing Page --
     ticketing = new QWidget;
@@ -207,7 +224,6 @@ MainWindow::MainWindow(QWidget *parent)
 
     mainLayout->addLayout(topLayout);
 
-    // Flight list
     flightView = new QTableView;
     flightModel = new FlightModel(this);
     flightView->setModel(flightModel);
@@ -216,7 +232,6 @@ MainWindow::MainWindow(QWidget *parent)
     flightView->horizontalHeader()->setStretchLastSection(true);
     mainLayout->addWidget(flightView);
 
-    // Seat widget
     seatWidget = new SeatWidget;
     seatWidget->setVisible(false);
     mainLayout->addWidget(seatWidget);
@@ -226,11 +241,8 @@ MainWindow::MainWindow(QWidget *parent)
             this, &MainWindow::onFlightSelected);
 
     stack->addWidget(ticketing);
-
-    // Start at menu
     stack->setCurrentWidget(menuPage);
 
-    // Populate stops from server (async). If server unreachable, you can fallback to local file.
     populateStopsFromServer();
 }
 
@@ -243,13 +255,11 @@ void MainWindow::ticket() { stack->setCurrentWidget(ticketing); }
 
 void MainWindow::populateStopsFromServer()
 {
-    // Request all flights (empty filter) and extract unique stop names
     QNetworkRequest req(QUrl(SERVER_BASE + "/api/search"));
     req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     QNetworkReply *reply = net->post(req, QJsonDocument(QJsonObject()).toJson());
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
         if (reply->error() != QNetworkReply::NoError) {
-            qWarning() << "populateStopsFromServer: network error:" << reply->errorString();
             reply->deleteLater();
             return;
         }
@@ -285,7 +295,6 @@ void MainWindow::populateStopsFromServer()
 
 void MainWindow::onSearchFlights()
 {
-    // Build request body from UI
     QJsonObject body;
     body["from"] = fromCombo->currentText();
     body["to"] = toCombo->currentText();
@@ -304,7 +313,6 @@ void MainWindow::onSearchFlights()
 
         QJsonDocument doc = QJsonDocument::fromJson(reply->readAll());
         if (!doc.isArray()) {
-            QMessageBox::warning(this, "Server Error", "Unexpected response from server.");
             reply->deleteLater();
             return;
         }
@@ -327,7 +335,7 @@ void MainWindow::onSearchFlights()
             }
             fr.duration = QString::number(obj.value("totalDistanceKm").toDouble());
             fr.fare = obj.value("baseFare").toDouble();
-            fr.seatsSoldCount = 0; // server can provide seat info if extended
+            fr.seatsSoldCount = 0;
             flights.append(fr);
         }
 
@@ -359,6 +367,7 @@ void MainWindow::validateUser(const QString &username, const QString &password, 
     }
 
     QJsonObject body;
+    body["role"] = isStaff ? "Staff" : "Passenger";
     body["username"] = username;
     body["password"] = password;
 
@@ -374,12 +383,6 @@ void MainWindow::validateUser(const QString &username, const QString &password, 
         }
 
         QJsonDocument doc = QJsonDocument::fromJson(reply->readAll());
-        if (!doc.isObject()) {
-            QMessageBox::warning(this, "Server Error", "Invalid response from server.");
-            reply->deleteLater();
-            return;
-        }
-
         bool ok = doc.object().value("ok").toBool(false);
         if (ok) {
             if (isStaff) stack->setCurrentWidget(staffPortalPage);
@@ -388,12 +391,51 @@ void MainWindow::validateUser(const QString &username, const QString &password, 
             QMessageBox::warning(this, "Login Failed", "Invalid credentials.");
         }
 
-        // clear fields
-        pUser->clear();
-        pPass->clear();
-        sUser->clear();
-        sPass->clear();
+        pUser->clear(); pPass->clear();
+        sUser->clear(); sPass->clear();
+        reply->deleteLater();
+    });
+}
 
+void MainWindow::registerUser(const QString &username, const QString &password, bool isStaff)
+{
+    if (username.trimmed().isEmpty() || password.isEmpty()) {
+        QMessageBox::warning(this, "Validation", "Please enter username and password to register.");
+        return;
+    }
+
+    QJsonObject body;
+    body["role"] = isStaff ? "Staff" : "Passenger";
+    body["username"] = username;
+    body["password"] = password;
+
+    QNetworkRequest req(QUrl(SERVER_BASE + "/api/register"));
+    req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    QNetworkReply *reply = net->post(req, QJsonDocument(body).toJson());
+
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        if (reply->error() != QNetworkReply::NoError) {
+            QMessageBox::warning(this, "Network Error", reply->errorString());
+            reply->deleteLater();
+            return;
+        }
+
+        QJsonDocument doc = QJsonDocument::fromJson(reply->readAll());
+        bool ok = doc.object().value("ok").toBool(false);
+        QString error = doc.object().value("error").toString();
+
+        if (ok) {
+            QMessageBox::information(this, "Success", "Account created successfully! You can now log in.");
+        } else {
+            if (error == "user_exists") {
+                QMessageBox::warning(this, "Registration Failed", "Username already exists.");
+            } else {
+                QMessageBox::warning(this, "Registration Failed", "Could not create account.");
+            }
+        }
+
+        pUser->clear(); pPass->clear();
+        sUser->clear(); sPass->clear();
         reply->deleteLater();
     });
 }

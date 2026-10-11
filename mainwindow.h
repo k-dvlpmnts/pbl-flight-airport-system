@@ -29,6 +29,8 @@ private slots:
     void onSearchFlights();
     void onFlightSelected(const QItemSelection &selected, const QItemSelection &deselected);
     void validateUser(const QString &username, const QString &password, bool isStaff);
+    void registerUser(const QString &username, const QString &password, bool isStaff);
+    void populateStopsFromServer();
 
 private:
     QStackedWidget *stack;
@@ -38,12 +40,8 @@ private:
     QWidget *passengerPortalPage;
     QWidget *staffPortalPage;
     QWidget *ticketing;
-    void setupUi();
-    // add inside the MainWindow class private section
-    void populateStopsFromServer();
 
-
-    // UI members used across methods
+    // UI elements
     QComboBox *fromCombo;
     QComboBox *toCombo;
     QDateEdit *dateEdit;
@@ -52,12 +50,12 @@ private:
     FlightModel *flightModel;
     SeatWidget *seatWidget;
 
-    // login fields
+    // Login fields
     QLineEdit *pUser;
     QLineEdit *pPass;
     QLineEdit *sUser;
     QLineEdit *sPass;
 
-    // network
+    // Network manager
     QNetworkAccessManager *net;
 };
