@@ -12,6 +12,7 @@ class FlightModel;
 class SeatWidget;
 class QItemSelection;
 class QLineEdit;
+class QLabel;
 class QNetworkAccessManager;
 
 class MainWindow : public QMainWindow {
@@ -29,6 +30,10 @@ private slots:
     void onSearchFlights();
     void onFlightSelected(const QItemSelection &selected, const QItemSelection &deselected);
     void validateUser(const QString &username, const QString &password, bool isStaff);
+    void registerUser(const QString &username, const QString &password, bool isStaff);
+    void populateStopsFromServer();
+    void onSeatToggled(int seatIndex, bool selected);
+    void bookSelectedFlight();
 
 private:
     QStackedWidget *stack;
@@ -38,26 +43,28 @@ private:
     QWidget *passengerPortalPage;
     QWidget *staffPortalPage;
     QWidget *ticketing;
-    void setupUi();
-    // add inside the MainWindow class private section
-    void populateStopsFromServer();
 
-
-    // UI members used across methods
+    // UI elements
     QComboBox *fromCombo;
     QComboBox *toCombo;
     QDateEdit *dateEdit;
     QPushButton *searchBtn;
+    QPushButton *bookBtn;
     QTableView *flightView;
     FlightModel *flightModel;
     SeatWidget *seatWidget;
+    QLabel *routeLabel;
+    QLabel *fareLabel;
 
-    // login fields
+    // Login fields
     QLineEdit *pUser;
     QLineEdit *pPass;
     QLineEdit *sUser;
     QLineEdit *sPass;
+    QString loggedInUsername;
 
-    // network
+    // Network manager
     QNetworkAccessManager *net;
+    QList<int> selectedSeats;
+    double currentFlightFare;
 };

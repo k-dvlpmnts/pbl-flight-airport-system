@@ -1,41 +1,41 @@
 cmake_minimum_required(VERSION 3.16)
+project(FlightAirportSystem LANGUAGES CXX)
 
-project(flight_airport_system VERSION 0.1 LANGUAGES CXX)
-
-set(CMAKE_AUTOUIC ON)
+# --- Qt setup ---
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
+set(CMAKE_AUTOUIC ON)
+
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Network)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Network)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
-
-set(PROJECT_SOURCES
+# --- GUI executable ---
+add_executable(flight_airport_system
     main.cpp
     mainwindow.cpp
     mainwindow.h
+    flightmodel.cpp
+    flightmodel.h
+    seatwidget.cpp
+    seatwidget.h
+    loginwindow.cpp
+    loginwindow.h
 )
 
-if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
-    qt_add_executable(flight_airport_system
-        MANUAL_FINALIZATION
-        ${PROJECT_SOURCES}
-    )
+target_link_libraries(flight_airport_system PRIVATE
+    Qt${QT_VERSION_MAJOR}::Widgets
+    Qt${QT_VERSION_MAJOR}::Network
+)
+
+# --- Compiler warnings (optional) ---
+if (MSVC)
+    target_compile_options(flight_airport_system PRIVATE /W4 /permissive-)
 else()
-    add_executable(flight_airport_system
-        ${PROJECT_SOURCES}
-    )
+    target_compile_options(flight_airport_system PRIVATE -Wall -Wextra -pedantic)
 endif()
 
-target_link_libraries(flight_airport_system PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
-
-set_target_properties(flight_airport_system PROPERTIES
-    MACOSX_BUNDLE TRUE
-    WIN32_EXECUTABLE TRUE
-)
-
-if(QT_VERSION_MAJOR EQUAL 6)
-    qt_finalize_executable(flight_airport_system)
-endif()
+# --- Output message ---
+message(STATUS "Configured FlightAirportSystem with Qt${QT_VERSION_MAJOR}")

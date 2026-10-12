@@ -4,6 +4,7 @@
 #include <QStackedWidget>
 #include <QPushButton>
 #include <QVBoxLayout>
+#include <QHBoxLayout>
 #include <QLineEdit>
 #include <QLabel>
 #include <QApplication>
@@ -26,12 +27,10 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
-#include <QFile>
-#include <QTextStream>
 #include <QSet>
 #include <QDebug>
 
-static const QString SERVER_BASE = QStringLiteral("http://127.0.0.1:8080"); // replace with your server IP/host
+static const QString SERVER_BASE = QStringLiteral("http://172.16.71.220:8080");
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),
@@ -40,68 +39,112 @@ MainWindow::MainWindow(QWidget *parent)
       passengerLoginPage(nullptr),
       staffLoginPage(nullptr),
       passengerPortalPage(nullptr),
+      staffPortalPage(nullptr),
       ticketing(nullptr),
       fromCombo(nullptr),
       toCombo(nullptr),
       dateEdit(nullptr),
       searchBtn(nullptr),
+      bookBtn(nullptr),
       flightView(nullptr),
       flightModel(nullptr),
       seatWidget(nullptr),
+      routeLabel(nullptr),
+      fareLabel(nullptr),
       pUser(nullptr),
       pPass(nullptr),
       sUser(nullptr),
       sPass(nullptr),
-      net(new QNetworkAccessManager(this))
+      net(new QNetworkAccessManager(this)),
+      currentFlightFare(0.0)
 {
     setWindowTitle("Flight and Airport Management System");
-    resize(900, 500);
+    resize(1000, 650);
 
-    // Basic stylesheet
+    // Task 6: Modern Qt GUI Design (SaaS aviation palette, rounded cards, sleek borders)
     setStyleSheet(R"(
         QWidget {
-            background-color: #F5F0EC;
-            font-family: 'Segoe UI';
-            color: #333;
+            background-color: #0F172A;
+            font-family: 'Segoe UI', Arial;
+            color: #F8FAFC;
         }
         QPushButton {
-            background-color: #B06058;
+            background-color: #3B82F6;
             color: white;
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-weight: bold;
+            padding: 10px 18px;
+            border-radius: 6px;
+            font-weight: 600;
+            border: none;
         }
         QPushButton:hover {
-            background-color: #CFC0C0;
-            color: #222;
+            background-color: #2563EB;
         }
-        QLineEdit {
-            background-color: #FFF;
-            border: 2px solid #B06058;
+        QPushButton#backBtn {
+            background-color: #334155;
+            color: #CBD5E1;
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+        QPushButton#backBtn:hover {
+            background-color: #475569;
+            color: white;
+        }
+        QLineEdit, QComboBox, QDateEdit {
+            background-color: #1E293B;
+            border: 1px solid #475569;
             border-radius: 6px;
-            padding: 6px;
+            padding: 8px;
+            color: #F8FAFC;
         }
         QLabel {
             font-size: 14px;
-            font-weight: 600;
+            color: #E2E8F0;
+        }
+        QTableView {
+            background-color: #1E293B;
+            alternate-background-color: #0F172A;
+            color: #F8FAFC;
+            gridline-color: #334155;
+            border: 1px solid #334155;
+            border-radius: 6px;
+        }
+        QHeaderView::section {
+            background-color: #334155;
+            color: #F8FAFC;
+            padding: 6px;
+            border: none;
+            font-weight: bold;
         }
     )");
 
-    // Central stacked widget
     stack = new QStackedWidget(this);
     setCentralWidget(stack);
+
+    // Helper lambda for Task 1: Top-left back arrow button on subpages
+    auto createBackArrow = [this]() {
+        QPushButton *backBtn = new QPushButton("← Back", this);
+        backBtn->setObjectName("backBtn");
+        backBtn->setFixedWidth(80);
+        connect(backBtn, &QPushButton::clicked, this, &MainWindow::goBack);
+        return backBtn;
+    };
 
     // --- Menu Page ---
     menuPage = new QWidget;
     QVBoxLayout *menuLayout = new QVBoxLayout(menuPage);
-    QLabel *menuTitle = new QLabel("Welcome to Flight Airport System");
+    QLabel *menuTitle = new QLabel("Flight & Airport Management System");
     menuTitle->setAlignment(Qt::AlignCenter);
-    menuTitle->setStyleSheet("font-size: 22px; font-weight: bold; color: #B06058;");
+    menuTitle->setStyleSheet("font-size: 26px; font-weight: bold; color: #38BDF8; margin-bottom: 20px;");
     menuLayout->addWidget(menuTitle);
 
     QPushButton *passengerBtn = new QPushButton("Passenger Portal");
     QPushButton *staffBtn = new QPushButton("Staff Portal");
-    QPushButton *exitBtn = new QPushButton("Exit");
+    QPushButton *exitBtn = new QPushButton("Exit Application");
+    
+    passengerBtn->setMinimumHeight(45);
+    staffBtn->setMinimumHeight(45);
+    exitBtn->setMinimumHeight(45);
+
     menuLayout->addWidget(passengerBtn);
     menuLayout->addWidget(staffBtn);
     menuLayout->addWidget(exitBtn);
@@ -110,15 +153,16 @@ MainWindow::MainWindow(QWidget *parent)
     connect(passengerBtn, &QPushButton::clicked, this, &MainWindow::passenger);
     connect(staffBtn, &QPushButton::clicked, this, &MainWindow::staff);
     connect(exitBtn, &QPushButton::clicked, qApp, &QApplication::quit);
-
     stack->addWidget(menuPage);
 
     // --- Passenger Login Page ---
     passengerLoginPage = new QWidget;
     QVBoxLayout *pLayout = new QVBoxLayout(passengerLoginPage);
+    pLayout->addWidget(createBackArrow(), 0, Qt::AlignLeft);
+    
     QLabel *pTitle = new QLabel("Passenger Login");
     pTitle->setAlignment(Qt::AlignCenter);
-    pTitle->setStyleSheet("font-size: 20px; font-weight: bold; color: #B06058;");
+    pTitle->setStyleSheet("font-size: 20px; font-weight: bold; color: #38BDF8;");
     pLayout->addWidget(pTitle);
 
     pLayout->addWidget(new QLabel("Username:"));
@@ -131,25 +175,22 @@ MainWindow::MainWindow(QWidget *parent)
     pLayout->addWidget(pPass);
 
     QPushButton *pLogin = new QPushButton("Login");
-    QPushButton *pBack = new QPushButton("Back");
+    QPushButton *pRegister = new QPushButton("Create Account");
     pLayout->addWidget(pLogin);
-    pLayout->addWidget(pBack);
+    pLayout->addWidget(pRegister);
 
-    connect(pBack, &QPushButton::clicked, this, &MainWindow::goBack);
-    connect(pLogin, &QPushButton::clicked, this, [this]() {
-        QString user = pUser->text().trimmed();
-        QString pass = pPass->text();
-        validateUser(user, pass, /*isStaff=*/false);
-    });
-
+    connect(pLogin, &QPushButton::clicked, this, [this]() { validateUser(pUser->text().trimmed(), pPass->text(), false); });
+    connect(pRegister, &QPushButton::clicked, this, [this]() { registerUser(pUser->text().trimmed(), pPass->text(), false); });
     stack->addWidget(passengerLoginPage);
 
     // --- Staff Login Page ---
     staffLoginPage = new QWidget;
     QVBoxLayout *sLayout = new QVBoxLayout(staffLoginPage);
+    sLayout->addWidget(createBackArrow(), 0, Qt::AlignLeft);
+
     QLabel *sTitle = new QLabel("Staff Login");
     sTitle->setAlignment(Qt::AlignCenter);
-    sTitle->setStyleSheet("font-size: 20px; font-weight: bold; color: #B06058;");
+    sTitle->setStyleSheet("font-size: 20px; font-weight: bold; color: #38BDF8;");
     sLayout->addWidget(sTitle);
 
     sLayout->addWidget(new QLabel("Username:"));
@@ -162,38 +203,49 @@ MainWindow::MainWindow(QWidget *parent)
     sLayout->addWidget(sPass);
 
     QPushButton *sLogin = new QPushButton("Login");
-    QPushButton *sBack = new QPushButton("Back");
+    QPushButton *sRegister = new QPushButton("Create Account");
     sLayout->addWidget(sLogin);
-    sLayout->addWidget(sBack);
+    sLayout->addWidget(sRegister);
 
-    connect(sBack, &QPushButton::clicked, this, &MainWindow::goBack);
-    connect(sLogin, &QPushButton::clicked, this, [this]() {
-        QString user = sUser->text().trimmed();
-        QString pass = sPass->text();
-        validateUser(user, pass, /*isStaff=*/true);
-    });
-
+    connect(sLogin, &QPushButton::clicked, this, [this]() { validateUser(sUser->text().trimmed(), sPass->text(), true); });
+    connect(sRegister, &QPushButton::clicked, this, [this]() { registerUser(sUser->text().trimmed(), sPass->text(), true); });
     stack->addWidget(staffLoginPage);
 
     // -- Passenger Portal Page --
     passengerPortalPage = new QWidget;
     QVBoxLayout *plLayout = new QVBoxLayout(passengerPortalPage);
-    QPushButton *book = new QPushButton("Book Ticket");
+    plLayout->addWidget(createBackArrow(), 0, Qt::AlignLeft);
+
+    QPushButton *book = new QPushButton("Book Ticket & Search Routes");
     QPushButton *track = new QPushButton("Track Luggage");
+    book->setMinimumHeight(45);
+    track->setMinimumHeight(45);
     plLayout->addWidget(book);
     plLayout->addWidget(track);
     connect(book, &QPushButton::clicked, this, &MainWindow::ticket);
     stack->addWidget(passengerPortalPage);
 
-    // -- Ticketing Page --
+    // -- Staff Portal Page --
+    staffPortalPage = new QWidget;
+    QVBoxLayout *slLayout = new QVBoxLayout(staffPortalPage);
+    slLayout->addWidget(createBackArrow(), 0, Qt::AlignLeft);
+
+    QLabel *staffLabel = new QLabel("Staff Management Portal (Active)");
+    staffLabel->setAlignment(Qt::AlignCenter);
+    staffLabel->setStyleSheet("font-size: 20px; font-weight: bold; color: #38BDF8;");
+    slLayout->addWidget(staffLabel);
+    stack->addWidget(staffPortalPage);
+
+    // -- Ticketing Page (Task 2 & 4 & 6) --
     ticketing = new QWidget;
     QVBoxLayout *mainLayout = new QVBoxLayout(ticketing);
+    mainLayout->addWidget(createBackArrow(), 0, Qt::AlignLeft);
 
     fromCombo = new QComboBox;
     toCombo = new QComboBox;
     dateEdit = new QDateEdit(QDate::currentDate());
     dateEdit->setCalendarPopup(true);
-    searchBtn = new QPushButton("Search");
+    searchBtn = new QPushButton("Find Optimal Route");
     searchBtn->setDefault(true);
 
     QHBoxLayout *topLayout = new QHBoxLayout;
@@ -204,10 +256,13 @@ MainWindow::MainWindow(QWidget *parent)
     topLayout->addWidget(new QLabel("Date"));
     topLayout->addWidget(dateEdit);
     topLayout->addWidget(searchBtn);
-
     mainLayout->addLayout(topLayout);
 
-    // Flight list
+    // Graph route display label
+    routeLabel = new QLabel("Optimal Route Path: -");
+    routeLabel->setStyleSheet("color: #38BDF8; font-weight: bold; font-size: 15px;");
+    mainLayout->addWidget(routeLabel);
+
     flightView = new QTableView;
     flightModel = new FlightModel(this);
     flightView->setModel(flightModel);
@@ -216,21 +271,34 @@ MainWindow::MainWindow(QWidget *parent)
     flightView->horizontalHeader()->setStretchLastSection(true);
     mainLayout->addWidget(flightView);
 
-    // Seat widget
+    // Seat widget & booking footer
+    QHBoxLayout *bottomBookingLayout = new QHBoxLayout;
     seatWidget = new SeatWidget;
     seatWidget->setVisible(false);
-    mainLayout->addWidget(seatWidget);
+    
+    QVBoxLayout *bookingActionLayout = new QVBoxLayout;
+    fareLabel = new QLabel("Total Fare: $0.00");
+    fareLabel->setStyleSheet("font-size: 16px; font-weight: bold; color: #10B981;");
+    bookBtn = new QPushButton("Confirm Booking");
+    bookBtn->setVisible(false);
+    bookBtn->setMinimumHeight(40);
+
+    bookingActionLayout->addWidget(fareLabel);
+    bookingActionLayout->addWidget(bookBtn);
+    bookingActionLayout->setAlignment(Qt::AlignCenter);
+
+    bottomBookingLayout->addWidget(seatWidget);
+    bottomBookingLayout->addLayout(bookingActionLayout);
+    mainLayout->addLayout(bottomBookingLayout);
 
     connect(searchBtn, &QPushButton::clicked, this, &MainWindow::onSearchFlights);
-    connect(flightView->selectionModel(), &QItemSelectionModel::selectionChanged,
-            this, &MainWindow::onFlightSelected);
+    connect(flightView->selectionModel(), &QItemSelectionModel::selectionChanged, this, &MainWindow::onFlightSelected);
+    connect(seatWidget, &SeatWidget::seatToggled, this, &MainWindow::onSeatToggled);
+    connect(bookBtn, &QPushButton::clicked, this, &MainWindow::bookSelectedFlight);
 
     stack->addWidget(ticketing);
-
-    // Start at menu
     stack->setCurrentWidget(menuPage);
 
-    // Populate stops from server (async). If server unreachable, you can fallback to local file.
     populateStopsFromServer();
 }
 
@@ -243,36 +311,22 @@ void MainWindow::ticket() { stack->setCurrentWidget(ticketing); }
 
 void MainWindow::populateStopsFromServer()
 {
-    // Request all flights (empty filter) and extract unique stop names
-    QNetworkRequest req(QUrl(SERVER_BASE + "/api/search"));
+    QNetworkRequest req(QUrl(SERVER_BASE + "/api/search_stops"));
     req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     QNetworkReply *reply = net->post(req, QJsonDocument(QJsonObject()).toJson());
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
         if (reply->error() != QNetworkReply::NoError) {
-            qWarning() << "populateStopsFromServer: network error:" << reply->errorString();
             reply->deleteLater();
             return;
         }
         QSet<QString> stops;
         QJsonDocument doc = QJsonDocument::fromJson(reply->readAll());
-        if (!doc.isArray()) {
-            reply->deleteLater();
-            return;
-        }
-        QJsonArray arr = doc.array();
-        for (const QJsonValue &v : arr) {
-            if (!v.isObject()) continue;
-            QJsonArray sarr = v.toObject().value("stops").toArray();
-            for (const QJsonValue &sv : sarr) {
-                if (!sv.isObject()) continue;
-                QString name = sv.toObject().value("name").toString();
-                if (!name.isEmpty()) stops.insert(name);
+        if (doc.isArray()) {
+            for (const QJsonValue &v : doc.array()) {
+                if (!v.toString().isEmpty()) stops.insert(v.toString());
             }
         }
-        QStringList list;
-        list.reserve(stops.size());
-        for (const QString &s : stops)
-            list.append(s);
+        QStringList list = stops.values();
         list.sort(Qt::CaseInsensitive);
 
         fromCombo->clear();
@@ -285,7 +339,6 @@ void MainWindow::populateStopsFromServer()
 
 void MainWindow::onSearchFlights()
 {
-    // Build request body from UI
     QJsonObject body;
     body["from"] = fromCombo->currentText();
     body["to"] = toCombo->currentText();
@@ -304,35 +357,40 @@ void MainWindow::onSearchFlights()
 
         QJsonDocument doc = QJsonDocument::fromJson(reply->readAll());
         if (!doc.isArray()) {
-            QMessageBox::warning(this, "Server Error", "Unexpected response from server.");
             reply->deleteLater();
             return;
         }
 
         QJsonArray arr = doc.array();
         QVector<FlightRecord> flights;
-        flights.reserve(arr.size());
+        QStringList routePathStops;
+        
         for (const QJsonValue &v : arr) {
             if (!v.isObject()) continue;
             QJsonObject obj = v.toObject();
             FlightRecord fr;
             fr.id = obj.value("flightNumber").toString();
-            QJsonArray stops = obj.value("stops").toArray();
-            if (!stops.isEmpty()) {
-                fr.dep = stops.first().toObject().value("name").toString();
-                fr.arr = stops.last().toObject().value("name").toString();
-            } else {
-                fr.dep = QString();
-                fr.arr = QString();
-            }
-            fr.duration = QString::number(obj.value("totalDistanceKm").toDouble());
+            fr.dep = obj.value("origin").toString();
+            fr.arr = obj.value("destination").toString();
+            fr.duration = obj.value("departureTime").toString();
             fr.fare = obj.value("baseFare").toDouble();
-            fr.seatsSoldCount = 0; // server can provide seat info if extended
+            fr.seatsSoldCount = obj.value("seatsSoldCount").toInt();
             flights.append(fr);
+
+            if (routePathStops.isEmpty()) routePathStops.append(fr.dep);
+            routePathStops.append(fr.arr);
+        }
+
+        if (!routePathStops.isEmpty()) {
+            routeLabel->setText("Optimal Route Path: " + routePathStops.join(" → "));
+        } else {
+            routeLabel->setText("Optimal Route Path: No route found");
         }
 
         flightModel->setFlights(flights);
         seatWidget->setVisible(false);
+        bookBtn->setVisible(false);
+        fareLabel->setText("Total Fare: $0.00");
         reply->deleteLater();
     });
 }
@@ -342,13 +400,76 @@ void MainWindow::onFlightSelected(const QItemSelection &selected, const QItemSel
     if (selected.indexes().isEmpty()) return;
     int row = selected.indexes().first().row();
     FlightRecord f = flightModel->flightAt(row);
+    currentFlightFare = f.fare;
 
     QVector<bool> sold(30, false);
     for (int i = 0; i < qMin(f.seatsSoldCount, sold.size()); ++i)
         sold[i] = true;
 
+    selectedSeats.clear();
     seatWidget->populate(sold);
     seatWidget->setVisible(true);
+    bookBtn->setVisible(true);
+    fareLabel->setText("Total Fare: $0.00");
+}
+
+void MainWindow::onSeatToggled(int seatIndex, bool selected)
+{
+    if (selected) {
+        if (!selectedSeats.contains(seatIndex)) selectedSeats.append(seatIndex);
+    } else {
+        selectedSeats.removeAll(seatIndex);
+    }
+    double total = selectedSeats.size() * currentFlightFare;
+    fareLabel->setText(QString("Total Fare (%1 seats): $%2").arg(selectedSeats.size()).arg(total, 0, 'f', 2));
+}
+
+void MainWindow::bookSelectedFlight()
+{
+    if (selectedSeats.isEmpty()) {
+        QMessageBox::warning(this, "Booking", "Please select at least one seat from the matrix.");
+        return;
+    }
+
+    QModelIndexList indexes = flightView->selectionModel()->selectedRows();
+    if (indexes.isEmpty()) return;
+    FlightRecord f = flightModel->flightAt(indexes.first().row());
+
+    QJsonObject body;
+    body["username"] = loggedInUsername.isEmpty() ? "guest_user" : loggedInUsername;
+    body["flightNumber"] = f.id;
+    body["seatCount"] = selectedSeats.size();
+    body["totalFare"] = selectedSeats.size() * currentFlightFare;
+
+    QNetworkRequest req(QUrl(SERVER_BASE + "/api/book"));
+    req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    QNetworkReply *reply = net->post(req, QJsonDocument(body).toJson());
+
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        if (reply->error() != QNetworkReply::NoError) {
+            QMessageBox::warning(this, "Network Error", reply->errorString());
+            reply->deleteLater();
+            return;
+        }
+
+        QJsonDocument doc = QJsonDocument::fromJson(reply->readAll());
+        bool ok = doc.object().value("ok").toBool(false);
+        QString error = doc.object().value("error").toString();
+
+        if (ok) {
+            QMessageBox::information(this, "Success", "Ticket booked successfully! Details saved to server records.");
+            stack->setCurrentWidget(passengerPortalPage);
+        } else {
+            if (error == "booking_not_open_yet") {
+                QMessageBox::warning(this, "Booking Restricted", "Booking opens only one month prior to departure.");
+            } else if (error == "seats_full") {
+                QMessageBox::warning(this, "Booking Failed", "Selected seats are sold out.");
+            } else {
+                QMessageBox::warning(this, "Booking Failed", "Could not complete booking.");
+            }
+        }
+        reply->deleteLater();
+    });
 }
 
 void MainWindow::validateUser(const QString &username, const QString &password, bool isStaff)
@@ -358,7 +479,9 @@ void MainWindow::validateUser(const QString &username, const QString &password, 
         return;
     }
 
+    loggedInUsername = username;
     QJsonObject body;
+    body["role"] = isStaff ? "Staff" : "Passenger";
     body["username"] = username;
     body["password"] = password;
 
@@ -374,12 +497,6 @@ void MainWindow::validateUser(const QString &username, const QString &password, 
         }
 
         QJsonDocument doc = QJsonDocument::fromJson(reply->readAll());
-        if (!doc.isObject()) {
-            QMessageBox::warning(this, "Server Error", "Invalid response from server.");
-            reply->deleteLater();
-            return;
-        }
-
         bool ok = doc.object().value("ok").toBool(false);
         if (ok) {
             if (isStaff) stack->setCurrentWidget(staffPortalPage);
@@ -388,12 +505,51 @@ void MainWindow::validateUser(const QString &username, const QString &password, 
             QMessageBox::warning(this, "Login Failed", "Invalid credentials.");
         }
 
-        // clear fields
-        pUser->clear();
-        pPass->clear();
-        sUser->clear();
-        sPass->clear();
+        pUser->clear(); pPass->clear();
+        sUser->clear(); sPass->clear();
+        reply->deleteLater();
+    });
+}
 
+void MainWindow::registerUser(const QString &username, const QString &password, bool isStaff)
+{
+    if (username.trimmed().isEmpty() || password.isEmpty()) {
+        QMessageBox::warning(this, "Validation", "Please enter username and password to register.");
+        return;
+    }
+
+    QJsonObject body;
+    body["role"] = isStaff ? "Staff" : "Passenger";
+    body["username"] = username;
+    body["password"] = password;
+
+    QNetworkRequest req(QUrl(SERVER_BASE + "/api/register"));
+    req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    QNetworkReply *reply = net->post(req, QJsonDocument(body).toJson());
+
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        if (reply->error() != QNetworkReply::NoError) {
+            QMessageBox::warning(this, "Network Error", reply->errorString());
+            reply->deleteLater();
+            return;
+        }
+
+        QJsonDocument doc = QJsonDocument::fromJson(reply->readAll());
+        bool ok = doc.object().value("ok").toBool(false);
+        QString error = doc.object().value("error").toString();
+
+        if (ok) {
+            QMessageBox::information(this, "Success", "Account created successfully! You can now log in.");
+        } else {
+            if (error == "user_exists") {
+                QMessageBox::warning(this, "Registration Failed", "Username already exists.");
+            } else {
+                QMessageBox::warning(this, "Registration Failed", "Could not create account.");
+            }
+        }
+
+        pUser->clear(); pPass->clear();
+        sUser->clear(); sPass->clear();
         reply->deleteLater();
     });
 }
