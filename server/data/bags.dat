@@ -1,0 +1,3 @@
+# bagId|username|flightNumber|passengerName|boardingCode|sensor|pushTime|lost|safe
+BAG0001|krishna|AI101|krishna|AI101-1-15813|0|1794276000|0|1
+BAG0002|krishna|AI101|krishna|AI101-1-15813|3|1794276000|0|1

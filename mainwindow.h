@@ -1,6 +1,6 @@
 #pragma once
-
 #include <QMainWindow>
+#include <QList>
 
 class QStackedWidget;
 class QWidget;
@@ -8,63 +8,73 @@ class QComboBox;
 class QDateEdit;
 class QPushButton;
 class QTableView;
-class FlightModel;
-class SeatWidget;
-class QItemSelection;
+class QListWidget;
 class QLineEdit;
 class QLabel;
 class QNetworkAccessManager;
+class FlightModel;
+class SeatWidget;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
 
 public:
-    MainWindow(QWidget *parent = nullptr);
-    ~MainWindow();
+    MainWindow(QWidget* parent = nullptr);
 
 private slots:
-    void passenger();
-    void staff();
     void goBack();
-    void ticket();
-    void onSearchFlights();
-    void onFlightSelected(const QItemSelection &selected, const QItemSelection &deselected);
-    void validateUser(const QString &username, const QString &password, bool isStaff);
-    void registerUser(const QString &username, const QString &password, bool isStaff);
-    void populateStopsFromServer();
-    void onSeatToggled(int seatIndex, bool selected);
-    void bookSelectedFlight();
+    void logout();
+    void onPassengerLogin();
+    void onStaffLogin();
+    void onAdminLogin();
+    void openSimulator();
+    void openBooking();
+    void openTrackLuggage();
+    void onSearch();
+    void onBookConfirm();
+    void onBagPush();
+    void onBagLoss();
+    void onBagSafe();
+    void refreshBagList();
 
 private:
-    QStackedWidget *stack;
-    QWidget *menuPage;
-    QWidget *passengerLoginPage;
-    QWidget *staffLoginPage;
-    QWidget *passengerPortalPage;
-    QWidget *staffPortalPage;
-    QWidget *ticketing;
+    QStackedWidget* stack;
 
-    // UI elements
-    QComboBox *fromCombo;
-    QComboBox *toCombo;
+    QWidget* firstPage;
+    QWidget* passengerLoginPage;
+    QWidget* staffLoginPage;
+    QWidget* adminLoginPage;
+    QWidget* adminPanelPage;
+    QWidget* passengerPortalPage;
+    QWidget* staffPortalPage;
+    QWidget* bookingPage;
+    QWidget* trackPage;
+    QWidget* boardingPassPage;
+    QWidget* simulatorPage;
+
+    QLineEdit *pUser, *pPass, *sUser, *sPass, *aUser, *aPass;
+    QLineEdit *newStaffUser, *newStaffPass;
+    QComboBox *newStaffRole;
+    QComboBox *fromCombo, *toCombo;
     QDateEdit *dateEdit;
-    QPushButton *searchBtn;
-    QPushButton *bookBtn;
     QTableView *flightView;
     FlightModel *flightModel;
     SeatWidget *seatWidget;
-    QLabel *routeLabel;
-    QLabel *fareLabel;
+    QLabel *routeLabel, *fareLabel;
+    QListWidget *bagList, *boardingList;
+    QPushButton *bookBtn;
 
-    // Login fields
-    QLineEdit *pUser;
-    QLineEdit *pPass;
-    QLineEdit *sUser;
-    QLineEdit *sPass;
-    QString loggedInUsername;
-
-    // Network manager
-    QNetworkAccessManager *net;
+    QNetworkAccessManager* net;
+    QString serverBase;
+    QString loggedInUser;
+    QString loggedInRole;
+    QString currentFlight;
+    QString currentDate;
+    double currentFare;
     QList<int> selectedSeats;
-    double currentFlightFare;
+    QList<QWidget*> history;
+    QListWidget *bagList, *boardingList, *simBagList;
+    QPushButton* backBtn();
+    QPushButton* logoutBtn();
+    void pushAndGo(QWidget* w);
 };
