@@ -117,3 +117,66 @@ public:
     bool empty() const { return headNode == 0; }
     int size() const { return count; }
 };
+
+
+template <class T>
+struct DNode {
+    T data;
+    DNode* prev;
+    DNode* next;
+    DNode(const T& d) : data(d), prev(0), next(0) {}
+};
+
+template <class T>
+class DoublyLinkedList {
+private:
+    DNode<T>* headNode;
+    DNode<T>* tailNode;
+    int count;
+    DoublyLinkedList(const DoublyLinkedList&);
+    DoublyLinkedList& operator=(const DoublyLinkedList&);
+public:
+    DoublyLinkedList() : headNode(0), tailNode(0), count(0) {}
+    ~DoublyLinkedList() { clear(); }
+
+    DNode<T>* head() const { return headNode; }
+    DNode<T>* tail() const { return tailNode; }
+    int size() const { return count; }
+    bool empty() const { return count == 0; }
+
+    DNode<T>* pushBack(const T& v) {
+        DNode<T>* n = new DNode<T>(v);
+        n->prev = tailNode;
+        if (tailNode) tailNode->next = n; else headNode = n;
+        tailNode = n;
+        count++;
+        return n;
+    }
+    DNode<T>* pushFront(const T& v) {
+        DNode<T>* n = new DNode<T>(v);
+        n->next = headNode;
+        if (headNode) headNode->prev = n; else tailNode = n;
+        headNode = n;
+        count++;
+        return n;
+    }
+    DNode<T>* insertAfter(DNode<T>* pos, const T& v) {
+        if (!pos) return pushFront(v);
+        if (pos == tailNode) return pushBack(v);
+        DNode<T>* n = new DNode<T>(v);
+        n->prev = pos;
+        n->next = pos->next;
+        pos->next->prev = n;
+        pos->next = n;
+        count++;
+        return n;
+    }
+    void remove(DNode<T>* n) {
+        if (!n) return;
+        if (n->prev) n->prev->next = n->next; else headNode = n->next;
+        if (n->next) n->next->prev = n->prev; else tailNode = n->prev;
+        delete n;
+        count--;
+    }
+    void clear() { while (headNode) remove(headNode); }
+};
