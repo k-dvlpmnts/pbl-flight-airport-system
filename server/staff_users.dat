@@ -1,0 +1,4 @@
+# username|password|staffType   (CHECKIN = check-in counter, BELT = baggage belt)
+manager|staff123|CHECKIN
+checkin1|checkin123|CHECKIN
+belt1|belt123|BELT
