@@ -76,3 +76,44 @@ public:
     bool empty() const { return topNode == 0; }
     int size() const { return count; }
 };
+
+
+
+
+template <class T>
+struct QueueNode {
+    T data;
+    QueueNode* next;
+    QueueNode(const T& d) : data(d), next(0) {}
+};
+
+template <class T>
+class Queue {
+private:
+    QueueNode<T>* headNode;
+    QueueNode<T>* tailNode;
+    int count;
+    Queue(const Queue&);
+    Queue& operator=(const Queue&);
+public:
+    Queue() : headNode(0), tailNode(0), count(0) {}
+    ~Queue() { while (!empty()) dequeue(); }
+    void enqueue(const T& v) {
+        QueueNode<T>* n = new QueueNode<T>(v);
+        if (tailNode) tailNode->next = n; else headNode = n;
+        tailNode = n;
+        count++;
+    }
+    T dequeue() {
+        T v = headNode->data;
+        QueueNode<T>* n = headNode;
+        headNode = headNode->next;
+        if (!headNode) tailNode = 0;
+        delete n;
+        count--;
+        return v;
+    }
+    T& front() { return headNode->data; }
+    bool empty() const { return headNode == 0; }
+    int size() const { return count; }
+};
