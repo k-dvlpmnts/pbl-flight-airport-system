@@ -1,70 +1,62 @@
 #pragma once
 
 #include <QMainWindow>
+#include <QDateTime>
+#include <QElapsedTimer>
+#include <QSet>
+#include <QString>
+#include <QVector>
+
 
 class QStackedWidget;
-class QWidget;
-class QComboBox;
-class QDateEdit;
-class QPushButton;
-class QTableView;
-class FlightModel;
-class SeatWidget;
-class QItemSelection;
-class QLineEdit;
 class QLabel;
-class QNetworkAccessManager;
+class QPushButton;
+
+class BasePage;
+class HomePage;
+class LoginPage;
+
+struct Session {
+    QString role;            // "PASSENGER", "STAFF", "ADMIN" or empty
+    QString username;
+    QString password;        // kept so that admin requests can be authenticated
+    QString staffType;       // "CHECKIN" or "BELT" for staff
+    void clear() { role.clear(); username.clear(); password.clear(); staffType.clear(); }
+};
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
 
 public:
-    MainWindow(QWidget *parent = nullptr);
-    ~MainWindow();
+    explicit MainWindow(QWidget *parent = nullptr);
+    ~MainWindow() override;
 
-private slots:
-    void passenger();
-    void staff();
+    void navigateTo(BasePage *page);
+    void navigateReplacing(BasePage *page, BasePage *keepHistoryUpTo);
     void goBack();
-    void ticket();
-    void onSearchFlights();
-    void onFlightSelected(const QItemSelection &selected, const QItemSelection &deselected);
-    void validateUser(const QString &username, const QString &password, bool isStaff);
-    void registerUser(const QString &username, const QString &password, bool isStaff);
-    void populateStopsFromServer();
-    void onSeatToggled(int seatIndex, bool selected);
-    void bookSelectedFlight();
+    void logout();
+    void onLoggedIn(const QString &role, const QString &user, const QString &password, const QString &staffType);
+
+    // ---- pages
+    HomePage *homePage() const { return m_home; }
+    LoginPage *passengerLogin() const { return m_passengerLogin; }
+    LoginPage *staffLogin() const { return m_staffLogin; }
+    LoginPage *adminLogin() const { return m_adminLogin; }
 
 private:
-    QStackedWidget *stack;
-    QWidget *menuPage;
-    QWidget *passengerLoginPage;
-    QWidget *staffLoginPage;
-    QWidget *passengerPortalPage;
-    QWidget *staffPortalPage;
-    QWidget *ticketing;
+    void showPage(BasePage *page);
+    QStackedWidget *m_stack;
+    QLabel *m_titleLabel;
+    QLabel *m_clockLabel;
+    QPushButton *m_backBtn;
+    QPushButton *m_logoutBtn;
 
-    // UI elements
-    QComboBox *fromCombo;
-    QComboBox *toCombo;
-    QDateEdit *dateEdit;
-    QPushButton *searchBtn;
-    QPushButton *bookBtn;
-    QTableView *flightView;
-    FlightModel *flightModel;
-    SeatWidget *seatWidget;
-    QLabel *routeLabel;
-    QLabel *fareLabel;
-
-    // Login fields
-    QLineEdit *pUser;
-    QLineEdit *pPass;
-    QLineEdit *sUser;
-    QLineEdit *sPass;
-    QString loggedInUsername;
-
-    // Network manager
-    QNetworkAccessManager *net;
-    QList<int> selectedSeats;
-    double currentFlightFare;
+    // navigation state
+    BasePage *m_current;
+    QVector<BasePage *> m_history;
+    
+    HomePage *m_home;
+    LoginPage *m_passengerLogin;
+    LoginPage *m_staffLogin;
+    LoginPage *m_adminLogin;
 };
