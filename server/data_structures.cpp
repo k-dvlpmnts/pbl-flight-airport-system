@@ -39,3 +39,40 @@ public:
         return top;
     }
 };
+
+
+template <class T>
+struct StackNode {
+    T data;
+    StackNode* next;
+    StackNode(const T& d) : data(d), next(0) {}
+};
+
+template <class T>
+class Stack {
+private:
+    StackNode<T>* topNode;
+    int count;
+    Stack(const Stack&);               
+    Stack& operator=(const Stack&);
+public:
+    Stack() : topNode(0), count(0) {}
+    ~Stack() { while (!empty()) pop(); }
+    void push(const T& v) {
+        StackNode<T>* n = new StackNode<T>(v);
+        n->next = topNode;
+        topNode = n;
+        count++;
+    }
+    T pop() {
+        T v = topNode->data;
+        StackNode<T>* n = topNode;
+        topNode = topNode->next;
+        delete n;
+        count--;
+        return v;
+    }
+    T& top() { return topNode->data; }
+    bool empty() const { return topNode == 0; }
+    int size() const { return count; }
+};
