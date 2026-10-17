@@ -61,7 +61,6 @@ private:
     FlightModel *flightModel;
     SeatWidget *seatWidget;
     QLabel *routeLabel, *fareLabel;
-    QListWidget *bagList, *boardingList;
     QPushButton *bookBtn;
 
     QNetworkAccessManager* net;

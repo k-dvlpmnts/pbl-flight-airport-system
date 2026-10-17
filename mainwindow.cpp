@@ -65,7 +65,7 @@ static QJsonArray postJsonArr(QNetworkAccessManager* net, const QString& url, co
 MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     setWindowTitle("Flight & Airport Operations System");
     resize(1100, 720);
-    serverBase = "http://127.0.0.1:8080";
+    serverBase = "http://172.16.18.166:8080";
     net = new QNetworkAccessManager(this);
 
     setStyleSheet(R"(
