@@ -1,0 +1,182 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+class MinHeap {
+private:
+    DynArray<HeapItem> a;
+    void siftUp(int i) {
+        while (i > 0) {
+            int p = (i - 1) / 2;
+            if (a[p].key <= a[i].key) break;
+            HeapItem t = a[p]; a[p] = a[i]; a[i] = t;
+            i = p;
+        }
+    }
+    void siftDown(int i) {
+        int n = a.size();
+        for (;;) {
+            int l = 2 * i + 1, r = l + 1, m = i;
+            if (l < n && a[l].key < a[m].key) m = l;
+            if (r < n && a[r].key < a[m].key) m = r;
+            if (m == i) break;
+            HeapItem t = a[m]; a[m] = a[i]; a[i] = t;
+            i = m;
+        }
+    }
+public:
+    bool empty() const { return a.size() == 0; }
+    int size() const { return a.size(); }
+    void push(long long key, int value) {
+        a.push(HeapItem(key, value));
+        siftUp(a.size() - 1);
+    }
+    HeapItem pop() {
+        HeapItem top = a[0];
+        a[0] = a[a.size() - 1];
+        a.removeAt(a.size() - 1);
+        if (a.size() > 0) siftDown(0);
+        return top;
+    }
+};
+
+
+template <class T>
+struct StackNode {
+    T data;
+    StackNode* next;
+    StackNode(const T& d) : data(d), next(0) {}
+};
+
+template <class T>
+class Stack {
+private:
+    StackNode<T>* topNode;
+    int count;
+    Stack(const Stack&);               
+    Stack& operator=(const Stack&);
+public:
+    Stack() : topNode(0), count(0) {}
+    ~Stack() { while (!empty()) pop(); }
+    void push(const T& v) {
+        StackNode<T>* n = new StackNode<T>(v);
+        n->next = topNode;
+        topNode = n;
+        count++;
+    }
+    T pop() {
+        T v = topNode->data;
+        StackNode<T>* n = topNode;
+        topNode = topNode->next;
+        delete n;
+        count--;
+        return v;
+    }
+    T& top() { return topNode->data; }
+    bool empty() const { return topNode == 0; }
+    int size() const { return count; }
+};
+
+
+
+
+template <class T>
+struct QueueNode {
+    T data;
+    QueueNode* next;
+    QueueNode(const T& d) : data(d), next(0) {}
+};
+
+template <class T>
+class Queue {
+private:
+    QueueNode<T>* headNode;
+    QueueNode<T>* tailNode;
+    int count;
+    Queue(const Queue&);
+    Queue& operator=(const Queue&);
+public:
+    Queue() : headNode(0), tailNode(0), count(0) {}
+    ~Queue() { while (!empty()) dequeue(); }
+    void enqueue(const T& v) {
+        QueueNode<T>* n = new QueueNode<T>(v);
+        if (tailNode) tailNode->next = n; else headNode = n;
+        tailNode = n;
+        count++;
+    }
+    T dequeue() {
+        T v = headNode->data;
+        QueueNode<T>* n = headNode;
+        headNode = headNode->next;
+        if (!headNode) tailNode = 0;
+        delete n;
+        count--;
+        return v;
+    }
+    T& front() { return headNode->data; }
+    bool empty() const { return headNode == 0; }
+    int size() const { return count; }
+};
+
+
+template <class T>
+struct DNode {
+    T data;
+    DNode* prev;
+    DNode* next;
+    DNode(const T& d) : data(d), prev(0), next(0) {}
+};
+
+template <class T>
+class DoublyLinkedList {
+private:
+    DNode<T>* headNode;
+    DNode<T>* tailNode;
+    int count;
+    DoublyLinkedList(const DoublyLinkedList&);
+    DoublyLinkedList& operator=(const DoublyLinkedList&);
+public:
+    DoublyLinkedList() : headNode(0), tailNode(0), count(0) {}
+    ~DoublyLinkedList() { clear(); }
+
+    DNode<T>* head() const { return headNode; }
+    DNode<T>* tail() const { return tailNode; }
+    int size() const { return count; }
+    bool empty() const { return count == 0; }
+
+    DNode<T>* pushBack(const T& v) {
+        DNode<T>* n = new DNode<T>(v);
+        n->prev = tailNode;
+        if (tailNode) tailNode->next = n; else headNode = n;
+        tailNode = n;
+        count++;
+        return n;
+    }
+    DNode<T>* pushFront(const T& v) {
+        DNode<T>* n = new DNode<T>(v);
+        n->next = headNode;
+        if (headNode) headNode->prev = n; else tailNode = n;
+        headNode = n;
+        count++;
+        return n;
+    }
+    DNode<T>* insertAfter(DNode<T>* pos, const T& v) {
+        if (!pos) return pushFront(v);
+        if (pos == tailNode) return pushBack(v);
+        DNode<T>* n = new DNode<T>(v);
+        n->prev = pos;
+        n->next = pos->next;
+        pos->next->prev = n;
+        pos->next = n;
+        count++;
+        return n;
+    }
+    void remove(DNode<T>* n) {
+        if (!n) return;
+        if (n->prev) n->prev->next = n->next; else headNode = n->next;
+        if (n->next) n->next->prev = n->prev; else tailNode = n->prev;
+        delete n;
+        count--;
+    }
+    void clear() { while (headNode) remove(headNode); }
+};
