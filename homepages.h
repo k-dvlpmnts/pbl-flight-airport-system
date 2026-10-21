@@ -31,3 +31,27 @@ public:
     QString pageTitle() const override { return QStringLiteral("SkyPort"); }
     void onEnter() override;
     void onPoll() override;
+
+private:
+    void applyEndpoint();
+    void refreshStatus();
+
+    QLineEdit *m_host;
+    QSpinBox *m_port;
+    QLabel *m_status;
+};
+
+class PassengerPortalPage : public BasePage {
+    Q_OBJECT
+public:
+    explicit PassengerPortalPage(MainWindow *mw, QWidget *parent = nullptr);
+    QString pageTitle() const override { return QStringLiteral("Passenger portal"); }
+    void onEnter() override;
+
+private:
+    void showBelt(const BeltSnapshot &snap);
+
+    QLabel *m_welcome;
+    QFrame *m_alertBox;
+    QLabel *m_alertText;
+};
