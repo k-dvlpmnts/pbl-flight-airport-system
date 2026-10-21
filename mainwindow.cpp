@@ -109,6 +109,117 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow() {}
 
+// ---------------------------------------------------------------- clock
+QDateTime MainWindow::serverNow() const
+{
+    if (!m_serverTime.isValid()) return QDateTime::currentDateTime();
+    return m_serverTime.addMSecs(m_serverClock.elapsed());
+}
+
+void MainWindow::setServerEndpoint(const QString &host, quint16 port)
+{
+    ServerApi::instance().setEndpoint(host, port);
+    QSettings settings(QStringLiteral("SkyPort"), QStringLiteral("AirlineClient"));
+    settings.setValue(QStringLiteral("server/host"), host.trimmed());
+    settings.setValue(QStringLiteral("server/port"), static_cast<int>(port));
+    m_serverTime = QDateTime();
+    requestClock();
+}
+
+void MainWindow::requestClock()
+{
+    if (m_clockBusy) return;
+    m_clockBusy = true;
+    PendingReply *r = ServerApi::instance().send(QStringList{QStringLiteral("TIME")});
+    connect(r, &PendingReply::finished, this, [this](const Reply &rep) {
+        m_clockBusy = false;
+        if (rep.ok) {
+            m_serverTime = QDateTime::fromString(rep.headField(2), QStringLiteral("yyyy-MM-dd HH:mm:ss"));
+            m_serverClock.start();
+            m_simulated = (rep.headField(3) == QLatin1String("1"));
+            m_online = true;
+            m_clockLabel->setText(QStringLiteral("System time  ") + rep.headField(2)
+                                  + (m_simulated ? QStringLiteral("  (simulated)") : QString()));
+            Theme::setRole(m_clockLabel, m_simulated ? "chipSim" : "chip");
+        } else {
+            m_online = false;
+            m_clockLabel->setText(QString::fromUtf8("\xE2\x9A\xA0  Server offline"));            // ⚠
+            Theme::setRole(m_clockLabel, "chipWarn");
+        }
+    });
+}
+
+// ---------------------------------------------------------------- polling
+bool MainWindow::wantsBelt() const
+{
+    return m_session.role == QLatin1String("PASSENGER")
+        || (m_session.role == QLatin1String("STAFF") && m_session.staffType == QLatin1String("BELT"));
+}
+
+void MainWindow::onTick()
+{
+    requestClock();
+    if (wantsBelt()) requestBelt();
+    if (m_current) m_current->onPoll();
+}
+
+void MainWindow::requestBelt()
+{
+    if (m_beltBusy) return;
+    m_beltBusy = true;
+    const QString mode = (m_session.role == QLatin1String("PASSENGER")) ? QStringLiteral("PASSENGER") : QStringLiteral("STAFF");
+    PendingReply *r = ServerApi::instance().send(QStringList{QStringLiteral("BELT"), mode, m_session.username});
+    connect(r, &PendingReply::finished, this, [this](const Reply &rep) {
+        m_beltBusy = false;
+        if (!wantsBelt()) return;                       // user logged out while the request was running
+        BeltSnapshot snap = BeltSnapshot::fromReply(rep);
+        if (!snap.valid) return;
+        m_belt = snap;
+        emit beltUpdated(snap);
+        checkAlerts(snap);
+    });
+}
+
+void MainWindow::showAlert(const QString &title, const QString &text, bool warning)
+{
+    QMessageBox *box = new QMessageBox(warning ? QMessageBox::Warning : QMessageBox::Information,
+                                       title, text, QMessageBox::Ok, this);
+    box->setAttribute(Qt::WA_DeleteOnClose);
+    box->setWindowModality(Qt::NonModal);                // never blocks the belt view
+    box->show();
+}
+
+void MainWindow::checkAlerts(const BeltSnapshot &snap)
+{
+    const bool passenger = (m_session.role == QLatin1String("PASSENGER"));
+    for (int i = 0; i < snap.bags.size(); ++i) {
+        const BagItem &b = snap.bags.at(i);
+        const QString key = b.tag + QLatin1Char('@') + b.pnr;
+        if (b.isLost() && !m_alertedLost.contains(key)) {
+            m_alertedLost.insert(key);
+            const QString where = snap.sensorName(b.lostAt);
+            if (passenger) {
+                showAlert(QString::fromUtf8("\xE2\x9A\xA0  Luggage alert"),
+                          QStringLiteral("The bag of %1 (tag %2, flight %3) fell off the belt.\n"
+                                         "It was not detected by \"%4\" at %5.\n\nThe belt staff have been alerted.")
+                              .arg(b.name, b.tag, b.flight, where, b.lostTime), true);
+            } else {
+                showAlert(QString::fromUtf8("\xE2\x9A\xA0  Bag fell off the belt"),
+                          QStringLiteral("Bag %1 of %2 (flight %3, seat %4) was not detected by \"%5\" at %6.\n\n"
+                                         "Please pick it up and press \"Mark bag safe\".")
+                              .arg(b.tag, b.name, b.flight, b.seat, where, b.lostTime), true);
+            }
+        }
+        if (passenger && b.state == QLatin1String("RECOVERED") && !m_alertedRecovered.contains(key)) {
+            m_alertedRecovered.insert(key);
+            showAlert(QString::fromUtf8("\xE2\x9C\x93  Luggage found"),
+                      QStringLiteral("Good news - the bag of %1 (tag %2) was picked up by the belt staff and is safe.")
+                          .arg(b.name, b.tag), false);
+        }
+    }
+}
+
+// ---------------------------------------------------------------- navigation
 void MainWindow::showPage(BasePage *page)
 {
     m_current = page;
