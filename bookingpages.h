@@ -31,7 +31,7 @@ private slots:
     void onFlightSelected();
     void continueToDetails();
 
-    private:
+private:
     void loadStops();
     void loadSeats();
     void applySeats(const Reply &rep);
@@ -89,4 +89,3 @@ private:
     QVector<FormRow> m_rows;
     FlightRecord m_leg;
 };
-    
