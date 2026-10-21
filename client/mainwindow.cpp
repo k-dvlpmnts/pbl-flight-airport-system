@@ -10,7 +10,7 @@
 #include "luggagepages.h"
 #include "staffpages.h"
 #include "simulatorpages.h"
-
+#include<QIcon>
 #include <QFrame>
 #include <QGridLayout>
 #include <QHBoxLayout>
@@ -26,10 +26,10 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),
       m_current(nullptr), m_online(false), m_simulated(false), m_clockBusy(false), m_beltBusy(false)
 {
-    setWindowTitle(QStringLiteral("SkyPort - Airline & Airport Management"));
+    setWindowTitle(QStringLiteral("SkyPort - Flight & Airport Management"));
     resize(1320, 820);
     setMinimumSize(1100, 700);
-
+    setWindowIcon("icon.png");
     QSettings settings(QStringLiteral("SkyPort"), QStringLiteral("AirlineClient"));
     ServerApi::instance().setEndpoint(settings.value(QStringLiteral("server/host"), QStringLiteral("127.0.0.1")).toString(),
                                       static_cast<quint16>(settings.value(QStringLiteral("server/port"), 8080).toInt()));

@@ -1,21 +1,3 @@
-// =============================================================================
-//  server.cpp  -  Airline & Airport Management server (single file)
-//
-//  * Pure C++ "C with classes": no STL.  Containers, strings, the doubly linked
-//    luggage line, the heap and the graph come from data_structures.cpp, and all
-//    sorting / binary searching from sorting_algorithms.cpp.
-//  * Talks to the Qt clients over plain TCP.  One request per connection:
-//        client ->  COMMAND|field|field|...\n
-//        server ->  OK|...\n   (or  ERR|code|message\n)   followed by data rows,
-//                   then the connection is closed.
-//  * The server is single threaded, so every request is atomic and all laptops
-//    always see the same data.  All data lives in plain text files that are
-//    created / updated in the folder the server is started from.
-//
-//  Build  (Linux / macOS) :  g++ -std=c++11 -O2 server.cpp -o server
-//  Build  (Windows MinGW) :  g++ -std=c++11 -O2 server.cpp -o server.exe -lws2_32
-//  Run                    :  ./server [port]          (default port 8080)
-// =============================================================================
 #ifdef _MSC_VER
   #define _CRT_SECURE_NO_WARNINGS
   #define _WINSOCK_DEPRECATED_NO_WARNINGS
@@ -88,11 +70,7 @@ using namespace std;
 #define F_TICKETS     "booked_tickets.dat"
 #define DIR_BOOKINGS  "bookings"
 
-// ----------------------------------------------------------------------------
-//  Time helpers.  Every time in the system is a "civil" time (local wall clock,
-//  no time zones) stored as seconds since 1970-01-01 00:00.  The simulator can
-//  shift the whole system clock by simOffset seconds.
-// ----------------------------------------------------------------------------
+//  Time helpers
 static long long simOffset = 0;
 static bool      simActive = false;
 
@@ -279,9 +257,7 @@ static bool appendLine(const char* path, const String& line) {
     return true;
 }
 
-// ----------------------------------------------------------------------------
-//  Response builder:  Row("TAG").f("a").n(5).d(1.5, 2).emit(out)  ->  TAG|a|5|1.50\n
-// ----------------------------------------------------------------------------
+//  Response builder
 class Row {
 public:
     String s;
@@ -296,7 +272,7 @@ static void fail(String& out, const char* code, const char* message) {
     out.clear();
     Row("ERR").f(code).f(message).emit(out);
 }
-static String clean(const String& in, int maxLen) {              // removes characters that would break the protocol
+static String clean(const String& in, int maxLen) {              
     String r;
     for (int i = 0; i < in.length() && i < maxLen; i++) {
         char c = in[i];
@@ -306,14 +282,9 @@ static String clean(const String& in, int maxLen) {              // removes char
     return r.trimmed();
 }
 
-// ----------------------------------------------------------------------------
-//  Generic comparators
-// ----------------------------------------------------------------------------
 static int strCmp(const String& a, const String& b) { return a.compare(b); }
 
-// ----------------------------------------------------------------------------
-//  Accounts   (Account  <-  PassengerAccount / StaffAccount / AdminAccount)
-// ----------------------------------------------------------------------------
+//  Accounts 
 class Account {
 public:
     String username;
@@ -413,10 +384,6 @@ static bool validUsername(const String& u) {
     return true;
 }
 
-// ----------------------------------------------------------------------------
-//  Flights + airports  (flights.dat is a daily timetable)
-//   flightNumber|origin|destination|departure HH:MM|duration min|baseFare|seats|operating days Mon..Sun
-// ----------------------------------------------------------------------------
 class Flight {
 public:
     String number, origin, dest;
@@ -509,9 +476,6 @@ static int stopIndex(const DynArray<String>& codes, const String& code) {
     return binarySearch(codes, code, strCmp);
 }
 
-// ----------------------------------------------------------------------------
-//  Seats: 6 per row, labelled 1A..1F, 2A..  (aisle between C and D)
-// ----------------------------------------------------------------------------
 static void parseSeat(const String& s, int& row, char& col) {
     row = 0;
     col = 0;
@@ -547,11 +511,7 @@ static String normalizeSeat(const String& s) {
     return r;
 }
 
-// ----------------------------------------------------------------------------
-//  Booking files:  bookings/<FLIGHT>_<DATE>.dat   (one file per flight per day)
-//  pnr|seat|name|age|gender|username|checkInCode|bagTag|bagKg|checkedIn|checkInTime|bagStatus|bookedAt
-//  bagStatus: NOBAG, NONE (not on belt yet), ONBELT, DELIVERED, LOST, RECOVERED
-// ----------------------------------------------------------------------------
+//  Booking files
 class PaxRecord {
 public:
     String pnr, seat, name, gender, username, code, bagTag, checkInTime, bagStatus, bookedAt;
@@ -645,9 +605,7 @@ static bool appendBooking(const String& flight, const String& date, const PaxRec
     return appendLine(path.c_str(), p.toLine());
 }
 
-// ----------------------------------------------------------------------------
-//  Ticket index (booked_tickets.dat):  username|pnr|flight|date|seats|total|bookedAt
-// ----------------------------------------------------------------------------
+
 class TicketRec {
 public:
     String username, pnr, flight, date, bookedAt;
@@ -669,7 +627,7 @@ static void loadTickets(DynArray<TicketRec>& out) {
     for (int i = 0; i < lines.size(); i++) {
         DynArray<String> f;
         String::split(lines[i], '|', f);
-        if (f.size() < 7) continue;                        // ignores lines of the old file format
+        if (f.size() < 7) continue;                       
         TicketRec t;
         t.username = f[0].trimmed();
         t.pnr = f[1].trimmed();
@@ -693,9 +651,7 @@ static int ticketUserKeyCmp(const TicketRec& t, const String& user) { return t.u
 static int ticketPnrCmp(const TicketRec& a, const TicketRec& b) { return a.pnr.compare(b.pnr); }
 static int ticketPnrKeyCmp(const TicketRec& t, const String& pnr) { return t.pnr.compare(pnr); }
 
-// ----------------------------------------------------------------------------
 //  Random identifiers
-// ----------------------------------------------------------------------------
 static String randomPnr() {
     static const char* alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     String s;
@@ -741,9 +697,8 @@ static void ensureDefaults() {
     }
 }
 
-// ----------------------------------------------------------------------------
-//  Passenger lookup helper used by check-in, simulator and belt
-// ----------------------------------------------------------------------------
+
+//  Passenger lookup
 static int locatePax(DynArray<PaxRecord>& arr, const String& pnr, const String& seat) {
     quickSort(arr, paxPnrSeatCmp);                      // binary search needs this order
     PaxKey k;
@@ -774,7 +729,7 @@ static bool updateBagStatus(const String& flight, const String& date, const Stri
 //    identified through the list: it is the node that follows the last bag the
 //    sensor saw.  For the end sensor this is "the bag after the last one that
 //    crossed the end sensor".
-// ----------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
 class Sensor {
 public:
     String name;
@@ -936,11 +891,9 @@ public:
     }
 };
 
-static Belt* belt = 0;                                  // created in main()
+static Belt* belt = 0;                                  
 
-// ============================================================================
 //  Route search : Dijkstra over the airport graph using the real timetable
-// ============================================================================
 class ScheduleModel : public EdgeModel {
 public:
     const DynArray<Flight>* flights;
@@ -1006,9 +959,7 @@ static void emitLeg(String& out, const char* kind, int index, const Flight& f, l
         .n(f.seats).n(avail).n(ok ? 1 : 0).f(reason).emit(out);
 }
 
-// ============================================================================
-//  Command handlers.   a[0] is the command, a[1..] the arguments
-// ============================================================================
+//  Command handlers
 static bool needArgs(DynArray<String>& a, int n, String& out) {
     if (a.size() < n) { fail(out, "bad_request", "Missing request fields"); return false; }
     return true;

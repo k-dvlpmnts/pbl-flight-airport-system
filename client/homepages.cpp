@@ -58,7 +58,7 @@ HomePage::HomePage(MainWindow *mw, QWidget *parent) : BasePage(mw, parent)
     QLabel *logo = Theme::label(QString::fromUtf8("\xE2\x9C\x88  SkyPort"), "h1", this);
     logo->setAlignment(Qt::AlignCenter);
     root->addWidget(logo);
-    QLabel *sub = Theme::label(QStringLiteral("Airline & Airport Management System"), "muted", this);
+    QLabel *sub = Theme::label(QStringLiteral("Flight & Airport Management System"), "muted", this);
     sub->setAlignment(Qt::AlignCenter);
     root->addWidget(sub);
     root->addSpacing(26);
