@@ -61,3 +61,32 @@ private slots:
     int m_pollCount;
 };
 
+class PassengerDetailsPage : public BasePage {
+    Q_OBJECT
+public:
+    explicit PassengerDetailsPage(MainWindow *mw, QWidget *parent = nullptr);
+    QString pageTitle() const override { return QStringLiteral("Passenger details"); }
+    void setBooking(const FlightRecord &leg, const QStringList &seats);
+
+private slots:
+    void confirm();
+
+private:
+    struct FormRow {
+        QString seat;
+        QLineEdit *name;
+        QSpinBox *age;
+        QComboBox *gender;
+        QSpinBox *bag;
+        FormRow() : name(nullptr), age(nullptr), gender(nullptr), bag(nullptr) {}
+    };
+
+    QLabel *m_summary;
+    QLabel *m_msg;
+    QWidget *m_formHost;
+    QVBoxLayout *m_formLayout;
+    QPushButton *m_confirm;
+    QVector<FormRow> m_rows;
+    FlightRecord m_leg;
+};
+    
