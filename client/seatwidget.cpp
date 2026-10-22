@@ -104,7 +104,7 @@ void SeatWidget::applyStates()
             b->setChecked(false);
             b->blockSignals(false);
             b->setEnabled(false);
-            b->setText(QString::fromUtf8("\xE2\x9C\x95"));                                    // ✕
+            b->setText(QString::fromUtf8("\xE2\x9C\x95"));                                    
             b->setToolTip(QStringLiteral("Seat ") + labelFor(i) + QStringLiteral(" - sold"));
         } else {
             b->setEnabled(m_interactive);
