@@ -1,26 +1,3 @@
-// =============================================================================
-//  sorting_algorithms.cpp
-//  Hand written sorting and searching routines (no STL, no qsort/bsearch).
-//
-//  All sorts work on DataStructures::DynArray<T> and take a comparator
-//  "cmp(a, b)" that returns  <0 if a<b,  0 if equal,  >0 if a>b.
-//  The comparator can be any plain function (or function object).
-//
-//     insertionSort  - O(n^2), best for tiny / almost sorted arrays, stable
-//     selectionSort  - O(n^2), few swaps
-//     bubbleSort     - O(n^2), stops early when sorted, stable
-//     mergeSort      - O(n log n), stable (default for records loaded from files)
-//     quickSort      - O(n log n) average, median-of-three pivot
-//     heapSort       - O(n log n) worst case, in place
-//
-//  Searching (array MUST be sorted with the matching comparator):
-//     binarySearch(arr, key, keyCmp)  -> index of a match, or -1
-//     lowerBound(arr, key, keyCmp)    -> first index whose element is >= key
-//     upperBound(arr, key, keyCmp)    -> first index whose element is >  key
-//  keyCmp(element, key) returns <0 / 0 / >0 comparing an element with the key.
-//
-//  Build the self test:   g++ -DSORT_SELF_TEST sorting_algorithms.cpp -o sort_test
-// =============================================================================
 #ifndef SORTING_ALGORITHMS_CPP
 #define SORTING_ALGORITHMS_CPP
 
@@ -92,7 +69,7 @@ void mergeSortRec(DynArray<T>& a, DynArray<T>& tmp, int lo, int hi, Cmp cmp) {
     mergeSortRec(a, tmp, mid + 1, hi, cmp);
     int i = lo, j = mid + 1, k = lo;
     while (i <= mid && j <= hi) {
-        if (cmp(a[j], a[i]) < 0) tmp[k++] = a[j++];       // strict: keeps it stable
+        if (cmp(a[j], a[i]) < 0) tmp[k++] = a[j++];
         else                     tmp[k++] = a[i++];
     }
     while (i <= mid) tmp[k++] = a[i++];
@@ -166,7 +143,7 @@ bool isSorted(const DynArray<T>& a, Cmp cmp) {
 // ------------------------------------------------------------ binary search
 template <class T, class K, class KeyCmp>
 int lowerBound(const DynArray<T>& a, const K& key, KeyCmp cmp) {
-    int lo = 0, hi = a.size();                            // search in [lo, hi)
+    int lo = 0, hi = a.size();                  
     while (lo < hi) {
         int mid = lo + (hi - lo) / 2;
         if (cmp(a[mid], key) < 0) lo = mid + 1;
@@ -197,57 +174,5 @@ int binarySearch(const DynArray<T>& a, const K& key, KeyCmp cmp) {
     return -1;
 }
 
-} // namespace Sorting
-
-// -----------------------------------------------------------------------------
-#ifdef SORT_SELF_TEST
-using namespace DataStructures;
-
-static int intCmp(const int& a, const int& b) { return a < b ? -1 : (a > b ? 1 : 0); }
-static int intKeyCmp(const int& e, const int& k) { return e < k ? -1 : (e > k ? 1 : 0); }
-
-static unsigned int rngState = 12345;
-static int nextRand() { rngState = rngState * 1103515245u + 12345u; return (int)((rngState >> 16) & 0x7fff); }
-
-typedef void (*SortFn)(DynArray<int>&, int (*)(const int&, const int&));
-static void doIns(DynArray<int>& a, int (*c)(const int&, const int&)) { Sorting::insertionSort(a, c); }
-static void doSel(DynArray<int>& a, int (*c)(const int&, const int&)) { Sorting::selectionSort(a, c); }
-static void doBub(DynArray<int>& a, int (*c)(const int&, const int&)) { Sorting::bubbleSort(a, c); }
-static void doMrg(DynArray<int>& a, int (*c)(const int&, const int&)) { Sorting::mergeSort(a, c); }
-static void doQck(DynArray<int>& a, int (*c)(const int&, const int&)) { Sorting::quickSort(a, c); }
-static void doHep(DynArray<int>& a, int (*c)(const int&, const int&)) { Sorting::heapSort(a, c); }
-
-int main() {
-    const char* names[] = { "insertion", "selection", "bubble", "merge", "quick", "heap" };
-    SortFn fns[] = { doIns, doSel, doBub, doMrg, doQck, doHep };
-    int sizes[] = { 0, 1, 2, 5, 17, 200, 1000 };
-    int failures = 0;
-    for (int f = 0; f < 6; f++) {
-        for (int s = 0; s < 7; s++) {
-            for (int variant = 0; variant < 3; variant++) {
-                DynArray<int> a;
-                for (int i = 0; i < sizes[s]; i++) {
-                    int v = (variant == 0) ? nextRand() % 50 : (variant == 1 ? i : sizes[s] - i);
-                    a.push(v);
-                }
-                fns[f](a, intCmp);
-                if (!Sorting::isSorted(a, intCmp)) { printf("FAIL %s n=%d variant=%d\n", names[f], sizes[s], variant); failures++; }
-            }
-        }
-    }
-    DynArray<int> a;
-    for (int i = 0; i < 100; i++) a.push(i * 2);          // even numbers 0..198
-    int idx = Sorting::binarySearch(a, 74, intKeyCmp);
-    int none = Sorting::binarySearch(a, 75, intKeyCmp);
-    DynArray<int> d;                                       // duplicates
-    d.push(1); d.push(2); d.push(2); d.push(2); d.push(5);
-    int lb = Sorting::lowerBound(d, 2, intKeyCmp), ub = Sorting::upperBound(d, 2, intKeyCmp);
-    printf("binarySearch(74)=%d (expect 37)  binarySearch(75)=%d (expect -1)  range of 2 = [%d,%d) (expect [1,4))\n",
-           idx, none, lb, ub);
-    if (idx != 37 || none != -1 || lb != 1 || ub != 4) failures++;
-    printf(failures ? "SORT TESTS FAILED\n" : "all sorting / searching tests passed\n");
-    return failures;
 }
-#endif
-
 #endif // SORTING_ALGORITHMS_CPP

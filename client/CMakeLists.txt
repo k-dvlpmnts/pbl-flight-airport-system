@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
+
 project(flight_airport_system LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -8,7 +9,7 @@ set(CMAKE_AUTOMOC ON)
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Network)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Network)
 
-add_executable(AirlineClient
+add_executable(flight_airport_system
     main.cpp
     mainwindow.cpp mainwindow.h
     basepage.h
@@ -27,13 +28,20 @@ add_executable(AirlineClient
     theme.cpp theme.h
 )
 
-# data_structures.cpp / sorting_algorithms.cpp are shared with the server (header-style .cpp files)
-target_include_directories(AirlineClient PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../server)
-target_link_libraries(AirlineClient PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Network)
+target_include_directories(flight_airport_system PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../server
+)
+
+target_link_libraries(flight_airport_system PRIVATE
+    Qt${QT_VERSION_MAJOR}::Widgets
+    Qt${QT_VERSION_MAJOR}::Network
+)
 
 if(MSVC)
-    target_compile_options(AirlineClient PRIVATE /utf-8)
+    target_compile_options(flight_airport_system PRIVATE /utf-8)
 endif()
+
 if(WIN32)
-    set_target_properties(AirlineClient PROPERTIES WIN32_EXECUTABLE ON)
+    set_target_properties(flight_airport_system PROPERTIES WIN32_EXECUTABLE ON)
 endif()
