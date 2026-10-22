@@ -175,4 +175,4 @@ int binarySearch(const DynArray<T>& a, const K& key, KeyCmp cmp) {
 }
 
 }
-#endif // SORTING_ALGORITHMS_CPP
+#endif
