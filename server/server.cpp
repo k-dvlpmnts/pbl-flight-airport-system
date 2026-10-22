@@ -49,7 +49,7 @@ using namespace std;
 #define BOARDING_BEFORE_MIN   40
 #define MAX_PAX_PER_BOOKING   9
 #ifndef BELT_SPEED_MPS
-#define BELT_SPEED_MPS        2.0     // conveyor speed (metres per second)
+#define BELT_SPEED_MPS        0.5    // conveyor speed (metres per second)
 #endif
 #ifndef BELT_TOLERANCE_SEC
 #define BELT_TOLERANCE_SEC    1.0     // sensor gets this long to see a bag before "missed"
