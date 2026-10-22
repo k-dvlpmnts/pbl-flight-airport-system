@@ -41,9 +41,7 @@
 using namespace DataStructures;
 using namespace Sorting;
 using namespace std;
-// ----------------------------------------------------------------------------
-//  Configuration
-// ----------------------------------------------------------------------------
+
 #define BOOKING_WINDOW_DAYS   30      // bookings open one month before the flight
 #define CHECKIN_CUTOFF_MIN    30     // check-in allowed strictly up to 30 min before departure
 #define SIM_WINDOW_MIN        180     // simulator works on flights departing within 3 h
@@ -193,9 +191,7 @@ static bool parseDateTime(const String& s, long long* civil) {   // "YYYY-MM-DD 
     return true;
 }
 
-// ----------------------------------------------------------------------------
 //  Text file helpers (BOM / CRLF tolerant)
-// ----------------------------------------------------------------------------
 static bool fileExists(const char* path) {
     FILE* f = fopen(path, "rb");
     if (!f) return false;
@@ -236,8 +232,7 @@ static bool writeTextFile(const char* path, const String& text) {
     fclose(f);
     return true;
 }
-// appends one line; repairs a missing final newline first (a classic cause of
-// two records ending up glued together on one line)
+
 static bool appendLine(const char* path, const String& line) {
     bool needNl = false;
     FILE* r = fopen(path, "rb");
@@ -569,7 +564,7 @@ static String bookingPath(const String& flight, const String& date) {
 static const char* BOOKING_HEADER =
     "# pnr|seat|name|age|gender|username|checkInCode|bagTag|bagKg|checkedIn|checkInTime|bagStatus|bookedAt\n";
 
-// loads (sorted by seat). returns false when no bookings exist yet for that flight/day
+
 static bool loadBooking(const String& flight, const String& date, DynArray<PaxRecord>& out) {
     out.clear();
     DynArray<String> lines;
@@ -716,20 +711,7 @@ static bool updateBagStatus(const String& flight, const String& date, const Stri
     return saveBooking(flight, date, arr);
 }
 
-// ----------------------------------------------------------------------------
-//  Luggage belt
-//
-//   [Start RFID] --- photon 1 --- photon 2 --- photon 3 --- photon 4 --- [End RFID]
-//
-//  * When a bag crosses the Start RFID it is appended to a doubly linked list
-//    (one node per bag, in belt order) and the time at which every other sensor
-//    must see it is calculated:   t(sensor) = t(push) + distance / belt speed.
-//  * The photon sensors only know that "something passed"; the End RFID reads
-//    the bag tag.  If a sensor does not fire at its timestamp the bag is
-//    identified through the list: it is the node that follows the last bag the
-//    sensor saw.  For the end sensor this is "the bag after the last one that
-//    crossed the end sensor".
-// ---------------------------------------------------------------------------
+
 class Sensor {
 public:
     String name;
@@ -1604,9 +1586,8 @@ static void handleRequest(const String& line, String& out) {
     else fail(out, "unknown_command", "Unknown command.");
 }
 
-// ============================================================================
+
 //  Networking (plain TCP, one request per connection)
-// ============================================================================
 #ifndef MSG_NOSIGNAL
 #define MSG_NOSIGNAL 0
 #endif

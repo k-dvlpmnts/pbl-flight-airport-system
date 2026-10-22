@@ -30,11 +30,10 @@ MainWindow::MainWindow(QWidget *parent)
     resize(1320, 820);
     setMinimumSize(1100, 700);
     setWindowIcon(QIcon("icon.png"));
-    QSettings settings(QStringLiteral("SkyPort"), QStringLiteral("AirlineClient"));
+    QSettings settings(QStringLiteral("SkyPort"), QStringLiteral("Flight & Airport Management"));
     ServerApi::instance().setEndpoint(settings.value(QStringLiteral("server/host"), QStringLiteral("127.0.0.1")).toString(),
                                       static_cast<quint16>(settings.value(QStringLiteral("server/port"), 8080).toInt()));
 
-    // ------------------------------------------------------------ chrome
     QWidget *central = new QWidget(this);
     QVBoxLayout *root = new QVBoxLayout(central);
     root->setContentsMargins(0, 0, 0, 0);
@@ -45,12 +44,12 @@ MainWindow::MainWindow(QWidget *parent)
     QGridLayout *barLayout = new QGridLayout(bar);
     barLayout->setContentsMargins(18, 10, 18, 10);
 
-    m_backBtn = Theme::button(QString::fromUtf8("\xE2\x86\x90  Back"), "nav", bar);              // ←  (top left)
+    m_backBtn = Theme::button(QString::fromUtf8("\xE2\x86\x90  Back"), "nav", bar);             
     m_backBtn->setMinimumWidth(110);
     m_titleLabel = Theme::label(QString(), "h2", bar);
     m_titleLabel->setAlignment(Qt::AlignCenter);
     m_clockLabel = Theme::label(QStringLiteral("Connecting..."), "chipWarn", bar);
-    m_logoutBtn = Theme::button(QStringLiteral("Logout"), "danger", bar);                       // top right
+    m_logoutBtn = Theme::button(QStringLiteral("Logout"), "danger", bar);                       
     m_logoutBtn->setMinimumWidth(110);
 
     QWidget *rightBox = new QWidget(bar);
