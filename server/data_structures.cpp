@@ -326,7 +326,7 @@ inline bool operator!=(const String& a, const String& b) { return a.compare(b) !
 inline bool operator<(const String& a, const String& b) { return a.compare(b) < 0; }
 inline bool operator>(const String& a, const String& b) { return a.compare(b) > 0; }
 
-// 4. Stack<T> and Queue<T> (singly linked)
+
 template <class T>
 struct StackNode {
     T data;
@@ -339,7 +339,7 @@ class Stack {
 private:
     StackNode<T>* topNode;
     int count;
-    Stack(const Stack&);               // not copyable
+    Stack(const Stack&);               
     Stack& operator=(const Stack&);
 public:
     Stack() : topNode(0), count(0) {}
@@ -401,7 +401,7 @@ public:
     int size() const { return count; }
 };
 
-// 5. Doubly linked list
+
 template <class T>
 struct DNode {
     T data;
@@ -464,7 +464,7 @@ public:
     void clear() { while (headNode) remove(headNode); }
 };
 
-// 6. MinHeap - binary heap of (key, value) pairs, smallest key on top
+
 struct HeapItem {
     long long key;
     int value;
@@ -510,20 +510,15 @@ public:
     }
 };
 
-// 7. Graph (adjacency lists) + Dijkstra "earliest arrival" search.
 class EdgeModel {
 public:
     virtual ~EdgeModel() {}
-    // timeAtFrom : time we are standing at the origin node
-    // isStart    : origin node is the search source
-    // returns false if the edge cannot be used, else sets *arrivalAtTo
-    virtual bool traverse(int edgeId, int fromNode, long long timeAtFrom,
-                          bool isStart, long long* arrivalAtTo) = 0;
+    virtual bool traverse(int edgeId, int fromNode, long long timeAtFrom, bool isStart, long long* arrivalAtTo) = 0;
 };
 
 struct GraphEdge {
     int to;
-    int id;                              // index of the record (e.g. flight) behind the edge
+    int id;                              
     GraphEdge() : to(0), id(0) {}
     GraphEdge(int t, int i) : to(t), id(i) {}
 };
@@ -540,8 +535,7 @@ public:
     int nodeCount() const { return n; }
     void addEdge(int u, int v, int id) { adj[u].push(GraphEdge(v, id)); }
     const DynArray<GraphEdge>& edges(int u) const { return adj[u]; }
-
-    // Dijkstra. arrival[], prevNode[], prevEdge[] must hold nodeCount() entries.
+    
     bool earliestArrival(int src, int dst, long long startTime, EdgeModel* model,
                          int* prevNode, int* prevEdge, long long* arrival) const {
         const long long INF = 4000000000000000000LL;
@@ -552,7 +546,7 @@ public:
         while (!heap.empty()) {
             HeapItem it = heap.pop();
             int u = it.value;
-            if (it.key > arrival[u]) continue;           // stale entry
+            if (it.key > arrival[u]) continue;           
             if (u == dst) break;
             const DynArray<GraphEdge>& es = adj[u];
             for (int i = 0; i < es.size(); i++) {
@@ -570,7 +564,3 @@ public:
         return arrival[dst] < INF;
     }
 };
-
-}
-
-#endif // DATA_STRUCTURES_CPP
