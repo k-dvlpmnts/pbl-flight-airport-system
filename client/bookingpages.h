@@ -1,5 +1,5 @@
 #pragma once
-// "Book ticket" : search (graph search for the shortest route) -> seat map -> passenger details
+
 #include "basepage.h"
 #include "flightmodel.h"
 #include <QStringList>
@@ -24,7 +24,7 @@ public:
     QString pageTitle() const override { return QStringLiteral("Book ticket"); }
     void onEnter() override;
     void onPoll() override;
-    void clearSelection();                     // forget the chosen seats (after a successful booking)
+    void clearSelection();                     
 
 private slots:
     void search();

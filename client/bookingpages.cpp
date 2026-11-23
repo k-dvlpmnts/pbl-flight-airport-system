@@ -24,7 +24,7 @@
 #include <QTableView>
 #include <QVBoxLayout>
 
-static const char *ARROW = "\xE2\x86\x92";                         // →
+static const char *ARROW = "\xE2\x86\x92";                         
 
 static QVBoxLayout *captioned(const QString &caption, QWidget *w, QWidget *parent)
 {
@@ -35,9 +35,6 @@ static QVBoxLayout *captioned(const QString &caption, QWidget *w, QWidget *paren
     return l;
 }
 
-// =====================================================================================
-//  BookTicketPage
-// =====================================================================================
 BookTicketPage::BookTicketPage(MainWindow *mw, QWidget *parent)
     : BasePage(mw, parent), m_hasCur(false), m_bookable(false), m_stopsLoaded(false), m_pollCount(0)
 {
@@ -55,7 +52,7 @@ BookTicketPage::BookTicketPage(MainWindow *mw, QWidget *parent)
     root->setContentsMargins(28, 18, 28, 22);
     root->setSpacing(14);
 
-    // ---------------------------------------------------------------- search card
+    
     QFrame *sc = Theme::card(content);
     QHBoxLayout *sl = new QHBoxLayout(sc);
     sl->setContentsMargins(20, 16, 20, 16);
@@ -65,7 +62,7 @@ BookTicketPage::BookTicketPage(MainWindow *mw, QWidget *parent)
     m_from->setMinimumWidth(230);
     m_to = new QComboBox(sc);
     m_to->setMinimumWidth(230);
-    QPushButton *swap = Theme::button(QString::fromUtf8("\xE2\x87\x84"), "nav", sc);               // ⇄
+    QPushButton *swap = Theme::button(QString::fromUtf8("\xE2\x87\x84"), "nav", sc);               
     swap->setFixedWidth(48);
     swap->setToolTip(QStringLiteral("Swap From and To"));
     m_date = new QDateEdit(sc);
@@ -87,8 +84,7 @@ BookTicketPage::BookTicketPage(MainWindow *mw, QWidget *parent)
     btnCol->addWidget(m_searchBtn);
     sl->addLayout(btnCol);
     root->addWidget(sc);
-
-    // ---------------------------------------------------------------- result
+    
     m_routeLabel = Theme::label(QStringLiteral("Choose where you want to fly"), "h2", content);
     m_routeInfo = Theme::label(QStringLiteral("The shortest route is found with a graph search over all flights in flights.dat."), "muted", content);
     root->addWidget(m_routeLabel);
@@ -111,8 +107,7 @@ BookTicketPage::BookTicketPage(MainWindow *mw, QWidget *parent)
     m_table->setMinimumHeight(200);
     m_table->setMaximumHeight(240);
     root->addWidget(m_table);
-
-    // ---------------------------------------------------------------- seats + summary
+    
     QHBoxLayout *bottom = new QHBoxLayout();
     bottom->setSpacing(14);
 
@@ -154,7 +149,6 @@ BookTicketPage::BookTicketPage(MainWindow *mw, QWidget *parent)
 
     updateSummary();
 
-    // ---------------------------------------------------------------- wiring
     connect(m_searchBtn, &QPushButton::clicked, this, &BookTicketPage::search);
     connect(swap, &QPushButton::clicked, this, [this]() {
         const int a = m_from->currentIndex();
@@ -181,11 +175,11 @@ void BookTicketPage::onEnter()
 
 void BookTicketPage::onPoll()
 {
-    // calendar limits follow the (possibly simulated) system date
+    
     const QDate today = app()->serverDate();
     if (m_date->minimumDate() != today) m_date->setDateRange(today, today.addDays(30));
     if (!m_stopsLoaded) loadStops();
-    // seats booked by other laptops show up here within a few seconds
+    
     if (m_hasCur && ++m_pollCount % 2 == 0) loadSeats();
 }
 
@@ -317,7 +311,7 @@ void BookTicketPage::loadSeats()
     const QString date = m_cur.date;
     PendingReply *r = ServerApi::instance().send(QStringList{QStringLiteral("SEATS"), id, date});
     connect(r, &PendingReply::finished, this, [this, id, date](const Reply &rep) {
-        if (!m_hasCur || m_cur.id != id || m_cur.date != date) return;      // the user selected another flight meanwhile
+        if (!m_hasCur || m_cur.id != id || m_cur.date != date) return;      
         if (!rep.ok) {
             if (rep.netOk) {
                 m_seatHint->setText(rep.message);
@@ -340,7 +334,7 @@ void BookTicketPage::applySeats(const Reply &rep)
     const QVector<QStringList> soldRows = rep.rowsOf(QStringLiteral("SOLD"));
     if (!soldRows.isEmpty()) {
         sold = soldRows.first();
-        sold.removeFirst();                                                   // drop the "SOLD" tag
+        sold.removeFirst();                                                   
     }
     m_seats->setSeatCount(total);
     m_seats->setInteractive(m_bookable);
@@ -397,9 +391,9 @@ void BookTicketPage::continueToDetails()
     app()->navigateTo(app()->detailsPage());
 }
 
-// =====================================================================================
-//  PassengerDetailsPage
-// =====================================================================================
+
+
+
 PassengerDetailsPage::PassengerDetailsPage(MainWindow *mw, QWidget *parent) : BasePage(mw, parent)
 {
     QVBoxLayout *root = new QVBoxLayout(this);
@@ -452,7 +446,7 @@ void PassengerDetailsPage::setBooking(const FlightRecord &leg, const QStringList
                            .arg(leg.id, leg.origin, QString::fromUtf8(ARROW), leg.dest, leg.date, leg.depTime,
                                 seats.join(QStringLiteral(", ")), Theme::money(leg.fare * seats.size())));
 
-    // throw away the old form
+    
     while (QLayoutItem *item = m_formLayout->takeAt(0)) {
         if (QWidget *w = item->widget()) delete w;
         delete item;
@@ -538,7 +532,7 @@ void PassengerDetailsPage::confirm()
             QMessageBox::warning(this, QStringLiteral("Booking failed"), rep.message);
             if (rep.code == QLatin1String("seat_taken") || rep.code == QLatin1String("not_open")
                 || rep.code == QLatin1String("departed") || rep.code == QLatin1String("not_operating"))
-                app()->goBack();                                              // back to the seat map, which refreshes
+                app()->goBack();                                              
             else {
                 m_msg->setText(rep.message);
                 m_msg->show();

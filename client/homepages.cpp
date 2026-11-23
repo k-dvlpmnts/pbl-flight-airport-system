@@ -17,7 +17,7 @@
 #include <QSpinBox>
 #include <QVBoxLayout>
 
-// ---------------------------------------------------------------- OptionCard
+
 OptionCard::OptionCard(const QString &icon, const QString &title, const QString &text, const QString &buttonText,
                        const QString &accentBg, const QString &accentFg, QWidget *parent)
     : QFrame(parent)
@@ -48,7 +48,7 @@ OptionCard::OptionCard(const QString &icon, const QString &title, const QString 
     connect(m_button, &QPushButton::clicked, this, &OptionCard::activated);
 }
 
-// ---------------------------------------------------------------- HomePage
+
 HomePage::HomePage(MainWindow *mw, QWidget *parent) : BasePage(mw, parent)
 {
     QVBoxLayout *root = new QVBoxLayout(this);
@@ -87,7 +87,7 @@ HomePage::HomePage(MainWindow *mw, QWidget *parent) : BasePage(mw, parent)
     connect(staff, &OptionCard::activated, this, [this]() { app()->navigateTo(app()->staffLogin()); });
     connect(sim, &OptionCard::activated, this, [this]() { app()->navigateTo(app()->simHome()); });
 
-    // ---- server connection
+    
     QHBoxLayout *srvRow = new QHBoxLayout();
     srvRow->addStretch(1);
     QFrame *srv = Theme::card(this);
@@ -144,14 +144,14 @@ void HomePage::refreshStatus()
     const QString where = ServerApi::instance().host() + QLatin1Char(':') + QString::number(ServerApi::instance().port());
     if (app()->serverOnline()) {
         Theme::setRole(m_status, "chipOk");
-        m_status->setText(QString::fromUtf8("\xE2\x97\x8F  Connected  ") + where);                // ●
+        m_status->setText(QString::fromUtf8("\xE2\x97\x8F  Connected  ") + where);                
     } else {
         Theme::setRole(m_status, "chipWarn");
         m_status->setText(QString::fromUtf8("\xE2\x97\x8F  Not connected  ") + where);
     }
 }
 
-// ---------------------------------------------------------------- PassengerPortalPage
+
 PassengerPortalPage::PassengerPortalPage(MainWindow *mw, QWidget *parent) : BasePage(mw, parent)
 {
     QVBoxLayout *root = new QVBoxLayout(this);

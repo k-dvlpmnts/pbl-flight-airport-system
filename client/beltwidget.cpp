@@ -21,7 +21,7 @@ QColor stateColor(const QString &state)
     if (state == QLatin1String("DELIVERED")) return QColor("#22c55e");
     if (state == QLatin1String("LOST")) return QColor("#ef4444");
     if (state == QLatin1String("RECOVERED")) return QColor("#f59e0b");
-    return QColor("#3b82f6");                                  // ONBELT
+    return QColor("#3b82f6");                                  
 }
 
 QString initials(const QString &name)
@@ -42,10 +42,10 @@ void drawSuitcase(QPainter &p, const QPointF &c, const QColor &color, const QStr
     }
     p.setPen(QPen(color.darker(130), 2));
     p.setBrush(Qt::NoBrush);
-    p.drawRoundedRect(QRectF(c.x() - 6, c.y() - 15, 12, 7), 2, 2);          // handle
+    p.drawRoundedRect(QRectF(c.x() - 6, c.y() - 15, 12, 7), 2, 2);          
     p.setPen(Qt::NoPen);
     p.setBrush(color);
-    p.drawRoundedRect(QRectF(c.x() - 15, c.y() - 10, 30, 22), 5, 5);        // body
+    p.drawRoundedRect(QRectF(c.x() - 15, c.y() - 10, 30, 22), 5, 5);        
     QFont f = p.font();
     f.setPointSize(7);
     f.setBold(true);
@@ -89,7 +89,7 @@ QString stateText(const BagItem &b)
     return QStringLiteral("On belt (sensor %1)").arg(b.passed);
 }
 
-} // namespace
+} 
 
 BeltWidget::BeltWidget(QWidget *parent) : QWidget(parent), m_staff(true)
 {
@@ -146,7 +146,7 @@ void BeltWidget::paintEvent(QPaintEvent *)
     const double trackH = 34.0;
     const double length = m_snap.length > 0 ? m_snap.length : 25.0;
 
-    // ------------------------------------------------------------------ heading
+    
     p.setFont(bold);
     p.setPen(QColor("#0f172a"));
     p.drawText(QPointF(kMargin, 24), QString::fromUtf8("Conveyor belt   \xE2\x86\x92   bags travel from the start RFID to the end RFID"));
@@ -157,7 +157,7 @@ void BeltWidget::paintEvent(QPaintEvent *)
         return;
     }
 
-    // ------------------------------------------------------------------ belt body
+    
     p.setPen(QPen(QColor("#94a3b8"), 1.5));
     p.setBrush(QColor("#e2e8f0"));
     p.drawRoundedRect(QRectF(trackLeft - 26, trackTop, trackW + 52, trackH), 17, 17);
@@ -165,7 +165,7 @@ void BeltWidget::paintEvent(QPaintEvent *)
     for (double x = trackLeft - 12; x < trackRight + 12; x += 16)
         p.drawLine(QPointF(x, trackTop + 6), QPointF(x, trackTop + trackH - 6));
 
-    // ------------------------------------------------------------------ sensors
+    
     for (int i = 0; i < m_snap.sensors.size(); ++i) {
         const SensorInfo &s = m_snap.sensors.at(i);
         const double x = trackLeft + s.distance / length * trackW;
@@ -196,17 +196,17 @@ void BeltWidget::paintEvent(QPaintEvent *)
         p.drawText(QRectF(x - 60, trackTop + trackH + 8, 120, 16), int(Qt::AlignCenter), s.name);
     }
 
-    // ------------------------------------------------------------------ bags on / beside the belt
+    
     int delivered = 0;
     for (int i = 0; i < m_snap.bags.size(); ++i) {
         const BagItem &b = m_snap.bags.at(i);
         const bool sel = (b.tag == m_selected);
         if (b.state == QLatin1String("DELIVERED")) { ++delivered; continue; }
-        if (b.pos < 0) continue;                                  // fell off, not noticed by the system yet
+        if (b.pos < 0) continue;                                  
         const double x = trackLeft + b.pos / length * trackW;
         if (b.state == QLatin1String("ONBELT")) {
             drawSuitcase(p, QPointF(x, trackTop + trackH / 2 + 1), stateColor(b.state), initials(b.name), sel);
-        } else {                                                  // LOST / RECOVERED: lying beside the belt
+        } else {                                                  
             const QPointF c(x, trackTop + trackH + 58);
             drawSuitcase(p, c, stateColor(b.state), b.state == QLatin1String("LOST") ? QString::fromUtf8("\xE2\x9C\x95") : QString::fromUtf8("\xE2\x9C\x93"), sel);
         }
@@ -216,7 +216,7 @@ void BeltWidget::paintEvent(QPaintEvent *)
     p.drawText(QRectF(trackRight + 30, trackTop - 2, 80, trackH + 4), int(Qt::AlignCenter),
                QStringLiteral("%1\nloaded").arg(delivered));
 
-    // ------------------------------------------------------------------ doubly linked list
+    
     const double nodesTop = 226.0;
     p.setFont(bold);
     p.setPen(QColor("#0f172a"));
@@ -245,10 +245,10 @@ void BeltWidget::paintEvent(QPaintEvent *)
         const BagItem &b = m_snap.bags.at(i);
         const QColor pointer("#64748b");
         if (i == 0) {
-            drawArrow(p, x + 4, x + kGap - 4, midY, pointer);                      // HEAD -> node
+            drawArrow(p, x + 4, x + kGap - 4, midY, pointer);                      
         } else {
-            drawArrow(p, x + 4, x + kGap - 4, midY - 8, pointer);                  // next
-            drawArrow(p, x + kGap - 4, x + 4, midY + 8, pointer);                  // prev
+            drawArrow(p, x + 4, x + kGap - 4, midY - 8, pointer);                  
+            drawArrow(p, x + kGap - 4, x + 4, midY + 8, pointer);                  
         }
         x += kGap;
 
@@ -276,7 +276,7 @@ void BeltWidget::paintEvent(QPaintEvent *)
         p.drawText(QPointF(r.left() + 16, r.top() + 82), fm.elidedText(stateText(b), Qt::ElideRight, static_cast<int>(kNodeW - 28)));
         x += kNodeW;
     }
-    drawArrow(p, x + 4, x + kGap - 4, midY, QColor("#64748b"));                    // last node -> NULL
+    drawArrow(p, x + 4, x + kGap - 4, midY, QColor("#64748b"));                    
     x += kGap;
     drawPill(p, QRectF(x, midY - 14, kPillW, 28), QStringLiteral("NULL"), QColor("#e2e8f0"), QColor("#475569"));
 }

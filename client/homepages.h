@@ -1,5 +1,5 @@
 #pragma once
-// First page and the passenger portal.
+
 #include "basepage.h"
 #include <QFrame>
 
@@ -9,7 +9,6 @@ class QSpinBox;
 class QPushButton;
 struct BeltSnapshot;
 
-// A big rounded card with an icon, a title, some text and a button.
 class OptionCard : public QFrame {
     Q_OBJECT
 public:

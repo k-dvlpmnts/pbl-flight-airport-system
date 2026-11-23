@@ -1,39 +1,15 @@
-#ifdef _MSC_VER
-  #define _CRT_SECURE_NO_WARNINGS
-  #define _WINSOCK_DEPRECATED_NO_WARNINGS
-#endif
 #include <iostream>
 #include <stdlib.h>
-#include <string.h>
 #include <time.h>
 
-#ifdef _WIN32
-  #ifndef WIN32_LEAN_AND_MEAN
-  #define WIN32_LEAN_AND_MEAN
-  #endif
-  #include <winsock2.h>
-  #include <ws2tcpip.h>
-  #include <direct.h>
-  typedef SOCKET sock_t;
-  #define CLOSESOCK closesocket
-  #define MKDIR(p) _mkdir(p)
-  typedef int sock_len_t;
-#else
-  #include <sys/types.h>
-  #include <sys/socket.h>
-  #include <sys/time.h>
-  #include <sys/stat.h>
-  #include <netinet/in.h>
-  #include <arpa/inet.h>
-  #include <netdb.h>
-  #include <unistd.h>
-  #include <signal.h>
-  typedef int sock_t;
-  #define INVALID_SOCKET (-1)
-  #define CLOSESOCK close
-  #define MKDIR(p) mkdir(p, 0755)
-  typedef socklen_t sock_len_t;
-#endif
+#define WIN32_LEAN_AND_MEAN
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <direct.h>
+typedef SOCKET sock_t;
+#define CLOSESOCK closesocket
+#define MKDIR(p) _mkdir(p)
+typedef int sock_len_t;
 
 #include "data_structures.cpp"
 #include "sorting_algorithms.cpp"
@@ -42,33 +18,26 @@ using namespace DataStructures;
 using namespace Sorting;
 using namespace std;
 
-#define BOOKING_WINDOW_DAYS   30      // bookings open one month before the flight
-#define CHECKIN_CUTOFF_MIN    30     // check-in allowed strictly up to 30 min before departure
-#define SIM_WINDOW_MIN        180     // simulator works on flights departing within 3 h
-#define MIN_LAYOVER_MIN       60      // minimum connection time used by the route search
-#define BOARDING_BEFORE_MIN   40
-#define MAX_PAX_PER_BOOKING   9
-#ifndef BELT_SPEED_MPS
-#define BELT_SPEED_MPS        0.5    // conveyor speed (metres per second)
-#endif
-#ifndef BELT_TOLERANCE_SEC
-#define BELT_TOLERANCE_SEC    1.0     // sensor gets this long to see a bag before "missed"
-#endif
-#ifndef BELT_MIN_GAP_SEC
-#define BELT_MIN_GAP_SEC      3.0     // minimum spacing between two bags on the belt
-#endif
-#define MAX_SENSORS           8
-#define BELT_REPORT_BAGS      60
+#define BOOKING_WINDOW_DAYS 30      
+#define CHECKIN_CUTOFF_MIN 30     
+#define SIM_WINDOW_MIN 180     
+#define MIN_LAYOVER_MIN 60      
+#define BOARDING_BEFORE_MIN 40
+#define MAX_PAX_PER_BOOKING 9
+#define BELT_SPEED_MPS 0.5    
+#define BELT_TOLERANCE_SEC 1.0     
+#define BELT_MIN_GAP_SEC 3.0     
+#define MAX_SENSORS 8
+#define BELT_REPORT_BAGS 60
 
-#define F_FLIGHTS     "flights.dat"
-#define F_AIRPORTS    "airports.dat"
-#define F_PASSENGERS  "passengers_users.dat"
-#define F_STAFF       "staff_users.dat"
-#define F_ADMINS      "admin_users.dat"
-#define F_TICKETS     "booked_tickets.dat"
-#define DIR_BOOKINGS  "bookings"
+#define F_FLIGHTS "flights.dat"
+#define F_AIRPORTS "airports.dat"
+#define F_PASSENGERS "passengers_users.dat"
+#define F_STAFF "staff_users.dat"
+#define F_ADMINS "admin_users.dat"
+#define F_TICKETS "booked_tickets.dat"
+#define DIR_BOOKINGS "bookings"
 
-//  Time helpers
 static long long simOffset = 0;
 static bool      simActive = false;
 
@@ -79,7 +48,7 @@ static long long floorDiv(long long a, long long b) {
 }
 static long long floorMod(long long a, long long b) { return a - floorDiv(a, b) * b; }
 
-static long long daysFromCivil(int y, int m, int d) {          // Howard Hinnant's algorithm
+static long long daysFromCivil(int y, int m, int d) {          
     y -= (m <= 2);
     long long era = floorDiv(y, 400);
     long long yoe = y - era * 400;
@@ -99,7 +68,7 @@ static void civilFromDays(long long z, int& y, int& m, int& d) {
     m = (int)(mp < 10 ? mp + 3 : mp - 9);
     y = (int)(yy + (m <= 2));
 }
-static int weekdayMon0(long long days) { return (int)floorMod(days + 3, 7); }   // 0 = Monday
+static int weekdayMon0(long long days) { return (int)floorMod(days + 3, 7); }   
 
 static double realNowSec() {
 #ifdef _WIN32
@@ -107,11 +76,6 @@ static double realNowSec() {
     GetSystemTimeAsFileTime(&ft);
     unsigned long long t = ((unsigned long long)ft.dwHighDateTime << 32) | ft.dwLowDateTime;
     return (double)(t / 10000ULL) / 1000.0;
-#else
-    struct timeval tv;
-    gettimeofday(&tv, 0);
-    return (double)tv.tv_sec + tv.tv_usec / 1000000.0;
-#endif
 }
 static long long realCivilNow() {
     time_t t = time(0);
@@ -133,20 +97,20 @@ static String fmtHM(int minutesOfDay) {
     snprintf(b, sizeof(b), "%02d:%02d", (minutesOfDay / 60) % 24, minutesOfDay % 60);
     return String(b);
 }
-static String fmtTime(long long civil) {                         // HH:MM:SS
+static String fmtTime(long long civil) {                         
     int s = (int)floorMod(civil, 86400);
     char b[16];
     snprintf(b, sizeof(b), "%02d:%02d:%02d", s / 3600, (s / 60) % 60, s % 60);
     return String(b);
 }
-static String fmtDateTime(long long civil) {                     // YYYY-MM-DD HH:MM:SS
+static String fmtDateTime(long long civil) {                     
     return fmtDate(floorDiv(civil, 86400)) + " " + fmtTime(civil);
 }
-static String fmtDateHM(long long civil) {                       // YYYY-MM-DD HH:MM
+static String fmtDateHM(long long civil) {                       
     int s = (int)floorMod(civil, 86400);
     return fmtDate(floorDiv(civil, 86400)) + " " + fmtHM(s / 60);
 }
-static bool parseDate(const String& s, long long* days) {        // "YYYY-MM-DD"
+static bool parseDate(const String& s, long long* days) {        
     DynArray<String> p;
     String::split(s.trimmed(), '-', p);
     if (p.size() != 3) return false;
@@ -156,11 +120,11 @@ static bool parseDate(const String& s, long long* days) {        // "YYYY-MM-DD"
     long long dd = daysFromCivil((int)y, (int)m, (int)d);
     int y2, m2, d2;
     civilFromDays(dd, y2, m2, d2);
-    if (y2 != y || m2 != m || d2 != d) return false;             // e.g. 2026-02-31
+    if (y2 != y || m2 != m || d2 != d) return false;             
     *days = dd;
     return true;
 }
-static bool parseHM(const String& s, int* minutes) {               // "HH:MM"
+static bool parseHM(const String& s, int* minutes) {               
     DynArray<String> p;
     String::split(s.trimmed(), ':', p);
     if (p.size() < 2) return false;
@@ -170,7 +134,7 @@ static bool parseHM(const String& s, int* minutes) {               // "HH:MM"
     *minutes = (int)(h * 60 + m);
     return true;
 }
-static bool parseDateTime(const String& s, long long* civil) {   // "YYYY-MM-DD HH:MM[:SS]"
+static bool parseDateTime(const String& s, long long* civil) {   
     String t = s.trimmed().replaced('T', ' ');
     int sp = t.indexOf(' ');
     if (sp < 0) return false;
@@ -191,7 +155,6 @@ static bool parseDateTime(const String& s, long long* civil) {   // "YYYY-MM-DD 
     return true;
 }
 
-//  Text file helpers (BOM / CRLF tolerant)
 static bool fileExists(const char* path) {
     FILE* f = fopen(path, "rb");
     if (!f) return false;
@@ -208,10 +171,10 @@ static bool readTextFile(const char* path, String& out) {
     fclose(f);
     if (out.length() >= 3 && (unsigned char)out[0] == 0xEF && (unsigned char)out[1] == 0xBB
         && (unsigned char)out[2] == 0xBF)
-        out = out.substr(3);                                    // strip UTF-8 BOM
+        out = out.substr(3);                                    
     return true;
 }
-// reads every data line (trimmed, blank lines and '#' comments skipped)
+
 static bool readDataLines(const char* path, DynArray<String>& lines) {
     lines.clear();
     String text;
@@ -232,7 +195,6 @@ static bool writeTextFile(const char* path, const String& text) {
     fclose(f);
     return true;
 }
-
 static bool appendLine(const char* path, const String& line) {
     bool needNl = false;
     FILE* r = fopen(path, "rb");
@@ -252,7 +214,6 @@ static bool appendLine(const char* path, const String& line) {
     return true;
 }
 
-//  Response builder
 class Row {
 public:
     String s;
@@ -279,7 +240,6 @@ static String clean(const String& in, int maxLen) {
 
 static int strCmp(const String& a, const String& b) { return a.compare(b); }
 
-//  Accounts 
 class Account {
 public:
     String username;
@@ -294,7 +254,7 @@ public:
 };
 class StaffAccount : public Account {
 public:
-    String staffType;                                   // CHECKIN or BELT
+    String staffType;                                   
     const char* role() const { return "STAFF"; }
     String toLine() const { return username + "|" + password + "|" + staffType; }
 };
@@ -312,7 +272,7 @@ class AccountStore {
 private:
     String path;
     int kind;
-    DynArray<Account*> list;                            // kept sorted by username
+    DynArray<Account*> list;                            
     AccountStore(const AccountStore&);
     AccountStore& operator=(const AccountStore&);
     void freeAll() {
@@ -350,13 +310,13 @@ public:
     }
     int count() const { return list.size(); }
     Account* at(int i) const { return list[i]; }
-    int find(const String& user) const { return binarySearch(list, user, accountKeyCmp); }   // binary search
+    int find(const String& user) const { return binarySearch(list, user, accountKeyCmp); }   
 
     bool check(const String& user, const String& pass) const {
         int i = find(user);
         return i >= 0 && list[i]->password == pass;
     }
-    // appends to the file (and to the sorted list)
+    
     bool add(const String& user, const String& pass, const String& type) {
         Account* a = make();
         a->username = user;
@@ -382,7 +342,7 @@ static bool validUsername(const String& u) {
 class Flight {
 public:
     String number, origin, dest;
-    int depMin, durMin, seats, days;                    // days = 7 bit mask, bit0 = Monday
+    int depMin, durMin, seats, days;                    
     double fare;
     Flight() : depMin(0), durMin(0), seats(0), days(127), fare(0) {}
     bool operatesOn(long long dayNum) const { return ((days >> weekdayMon0(dayNum)) & 1) != 0; }
@@ -408,7 +368,7 @@ static void loadFlights(DynArray<Flight>& out) {
         fl.origin = f[1].trimmed().upper();
         fl.dest = f[2].trimmed().upper();
         bool ok1 = true, ok2 = true, ok3 = true, okT = true;
-        if (f[3].indexOf('T') >= 0) {                              // legacy "2026-11-10T08:00:00" format
+        if (f[3].indexOf('T') >= 0) {                              
             long long civil;
             okT = parseDateTime(f[3], &civil);
             fl.depMin = (int)(floorMod(civil, 86400) / 60);
@@ -458,7 +418,7 @@ static void loadAirports(DynArray<Airport>& out) {
     }
     quickSort(out, airportCmp);
 }
-// every airport that appears in the timetable, sorted and unique
+
 static void collectStops(const DynArray<Flight>& fl, DynArray<String>& codes) {
     DynArray<String> all;
     for (int i = 0; i < fl.size(); i++) { all.push(fl[i].origin); all.push(fl[i].dest); }
@@ -505,8 +465,6 @@ static String normalizeSeat(const String& s) {
     r.appendChar(col);
     return r;
 }
-
-//  Booking files
 class PaxRecord {
 public:
     String pnr, seat, name, gender, username, code, bagTag, checkInTime, bagStatus, bookedAt;
@@ -576,7 +534,7 @@ static bool loadBooking(const String& flight, const String& date, DynArray<PaxRe
     mergeSort(out, paxSeatCmp);
     return true;
 }
-// NOTE: sorts a private copy, so references the caller holds into 'arr' stay valid
+
 static bool saveBooking(const String& flight, const String& date, const DynArray<PaxRecord>& arr) {
     DynArray<PaxRecord> sorted = arr;
     mergeSort(sorted, paxSeatCmp);
@@ -590,7 +548,7 @@ static bool saveBooking(const String& flight, const String& date, const DynArray
     for (int i = 0; i < sorted.size(); i++) { text += sorted[i].toLine(); text += '\n'; }
     return writeTextFile(bookingPath(flight, date).c_str(), text);
 }
-// first booking of the day creates the file, later bookings edit (extend) the existing one
+
 static bool appendBooking(const String& flight, const String& date, const PaxRecord& p) {
     String path = bookingPath(flight, date);
     if (!fileExists(path.c_str())) {
@@ -599,7 +557,6 @@ static bool appendBooking(const String& flight, const String& date, const PaxRec
     }
     return appendLine(path.c_str(), p.toLine());
 }
-
 
 class TicketRec {
 public:
@@ -622,7 +579,7 @@ static void loadTickets(DynArray<TicketRec>& out) {
     for (int i = 0; i < lines.size(); i++) {
         DynArray<String> f;
         String::split(lines[i], '|', f);
-        if (f.size() < 7) continue;                       
+        if (f.size() < 7) continue;                        
         TicketRec t;
         t.username = f[0].trimmed();
         t.pnr = f[1].trimmed();
@@ -645,8 +602,6 @@ static int ticketUserCmp(const TicketRec& a, const TicketRec& b) {
 static int ticketUserKeyCmp(const TicketRec& t, const String& user) { return t.username.compare(user); }
 static int ticketPnrCmp(const TicketRec& a, const TicketRec& b) { return a.pnr.compare(b.pnr); }
 static int ticketPnrKeyCmp(const TicketRec& t, const String& pnr) { return t.pnr.compare(pnr); }
-
-//  Random identifiers
 static String randomPnr() {
     static const char* alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     String s;
@@ -658,7 +613,7 @@ static String randomDigits(int n) {
     for (int i = 0; i < n; i++) s += (char)('0' + rand() % 10);
     return s;
 }
-static String gateFor(const String& flight, long long dayNum) {     // stable, made up "gate"
+static String gateFor(const String& flight, long long dayNum) {     
     int h = 0;
     for (int i = 0; i < flight.length(); i++) h = h * 31 + flight[i];
     h += (int)floorMod(dayNum, 5);
@@ -669,7 +624,6 @@ static String gateFor(const String& flight, long long dayNum) {     // stable, m
     return g;
 }
 
-// creates files that are missing so that a fresh folder still works
 static void ensureDefaults() {
     MKDIR(DIR_BOOKINGS);
     if (!fileExists(F_ADMINS)) {
@@ -692,10 +646,8 @@ static void ensureDefaults() {
     }
 }
 
-
-//  Passenger lookup
 static int locatePax(DynArray<PaxRecord>& arr, const String& pnr, const String& seat) {
-    quickSort(arr, paxPnrSeatCmp);                      // binary search needs this order
+    quickSort(arr, paxPnrSeatCmp);                      
     PaxKey k;
     k.pnr = pnr;
     k.seat = seat;
@@ -710,12 +662,10 @@ static bool updateBagStatus(const String& flight, const String& date, const Stri
     arr[i].bagStatus = status;
     return saveBooking(flight, date, arr);
 }
-
-
 class Sensor {
 public:
     String name;
-    double distance;                                    // metres from the start of the belt
+    double distance;                                    
     Sensor(const char* n, double d) : name(n), distance(d) {}
     virtual ~Sensor() {}
     virtual const char* kind() const = 0;
@@ -750,11 +700,11 @@ public:
     String lostTime, deliveredTime, recoveredInfo;
     int weightKg;
     int state;
-    int passed;                                         // highest sensor index that saw the bag
-    int lostAt;                                         // sensor that failed to see it (-1 none)
-    int dropAt;                                         // SIMULATION ONLY: sensor that will miss it
-    double pushReal;                                    // real clock at the start RFID
-    long long pushCivil;                                // system (simulated) clock at the start RFID
+    int passed;                                         
+    int lostAt;                                         
+    int dropAt;                                         
+    double pushReal;                                    
+    long long pushCivil;                                
     BagInfo() : weightKg(0), state(BAG_ONBELT), passed(0), lostAt(-1), dropAt(-1), pushReal(0), pushCivil(0) {}
 };
 
@@ -762,15 +712,15 @@ class Belt {
 private:
     DynArray<Sensor*> sensors;
     DoublyLinkedList<BagInfo> line;
-    DNode<BagInfo>* sensorLast[MAX_SENSORS];            // last bag each sensor has dealt with
+    DNode<BagInfo>* sensorLast[MAX_SENSORS];            
     double lastPushReal;
     Belt(const Belt&);
     Belt& operator=(const Belt&);
 
-    // bag the DLL says sensor j should be seeing now
+    
     DNode<BagInfo>* expectedBagAt(int j) {
         DNode<BagInfo>* n = sensorLast[j] ? sensorLast[j]->next : line.head();
-        while (n && n->data.lostAt != -1 && n->data.lostAt <= j) n = n->next;   // skip bags that fell earlier
+        while (n && n->data.lostAt != -1 && n->data.lostAt <= j) n = n->next;   
         return n;
     }
 public:
@@ -788,7 +738,7 @@ public:
     int sensorCount() const { return sensors.size(); }
     const Sensor* sensor(int i) const { return sensors[i]; }
     double length() const { return sensors[sensors.size() - 1]->distance; }
-    double offsetOf(int j) const { return sensors[j]->distance / BELT_SPEED_MPS; }   // seconds after the push
+    double offsetOf(int j) const { return sensors[j]->distance / BELT_SPEED_MPS; }   
     DoublyLinkedList<BagInfo>& bags() { return line; }
 
     DNode<BagInfo>* findBag(const String& flight, const String& date, const String& pnr, const String& seat) {
@@ -803,7 +753,7 @@ public:
         return 0;
     }
 
-    // bag crosses the start RFID.  false => start of the belt still occupied
+    
     bool pushBag(const BagInfo& proto, double now, double* waitSec) {
         if (now - lastPushReal < BELT_MIN_GAP_SEC) {
             *waitSec = BELT_MIN_GAP_SEC - (now - lastPushReal);
@@ -820,7 +770,6 @@ public:
         return true;
     }
 
-    // run the timetable: every sensor either sees its bag on time or misses it
     void tick(double now) {
         int last = sensors.size() - 1;
         for (DNode<BagInfo>* n = line.head(); n; n = n->next) {
@@ -828,9 +777,9 @@ public:
             if (b.state != BAG_ONBELT) continue;
             for (int j = b.passed + 1; j <= last; j++) {
                 double due = b.pushReal + offsetOf(j);
-                if (b.dropAt == j) {                                   // this sensor will NOT fire
-                    if (now < due + BELT_TOLERANCE_SEC) break;         // still within tolerance
-                    DNode<BagInfo>* victim = expectedBagAt(j);         // identify through the list
+                if (b.dropAt == j) {                                   
+                    if (now < due + BELT_TOLERANCE_SEC) break;         
+                    DNode<BagInfo>* victim = expectedBagAt(j);         
                     if (!victim) victim = n;
                     BagInfo& v = victim->data;
                     v.state = BAG_LOST;
@@ -842,8 +791,8 @@ public:
                            j, sensors[j]->name.c_str(), v.tag.c_str(), v.name.c_str());
                     break;
                 }
-                if (now < due) break;                                  // not yet time
-                b.passed = j;                                          // sensor fired on time
+                if (now < due) break;                                  
+                b.passed = j;                                          
                 sensorLast[j] = n;
                 if (j == last) {
                     b.state = BAG_DELIVERED;
@@ -854,7 +803,6 @@ public:
         }
     }
 
-    // metres from the start; -1 = not on the belt any more (fell off, not yet noticed)
     double positionOf(const BagInfo& b, double now) const {
         double L = length();
         if (b.state == BAG_DELIVERED) return L;
@@ -875,25 +823,24 @@ public:
 
 static Belt* belt = 0;                                  
 
-//  Route search : Dijkstra over the airport graph using the real timetable
 class ScheduleModel : public EdgeModel {
 public:
     const DynArray<Flight>* flights;
-    long long startDay;                                  // the date chosen on the calendar
-    long long now;                                       // system clock
+    long long startDay;                                  
+    long long now;                                       
     ScheduleModel(const DynArray<Flight>* f, long long day, long long n) : flights(f), startDay(day), now(n) {}
 
-    // departure (absolute civil seconds) of flight fi when we stand at its origin at time tFrom; -1 = none
+    
     long long departureFor(int fi, long long tFrom, bool isStart) const {
         const Flight& f = (*flights)[fi];
         if (isStart) {
-            if (!f.operatesOn(startDay)) return -1;      // first leg must leave on the chosen date
+            if (!f.operatesOn(startDay)) return -1;      
             long long dep = f.departure(startDay);
-            return dep >= now ? dep : -1;                // cannot board a plane that has left
+            return dep >= now ? dep : -1;                
         }
         long long earliest = tFrom + MIN_LAYOVER_MIN * 60LL;
         long long d0 = floorDiv(earliest, 86400);
-        for (int k = 0; k < 3; k++) {                    // today, tomorrow, day after
+        for (int k = 0; k < 3; k++) {                    
             long long day = d0 + k;
             if (!f.operatesOn(day)) continue;
             long long dep = f.departure(day);
@@ -909,7 +856,6 @@ public:
     }
 };
 
-// can the flight on this day be booked right now?
 static bool bookingOpen(const Flight& f, long long dayNum, long long now, String& code, String& reason) {
     if (!f.operatesOn(dayNum)) { code = "not_operating"; reason = "Flight does not operate on this date"; return false; }
     long long dep = f.departure(dayNum);
@@ -941,7 +887,6 @@ static void emitLeg(String& out, const char* kind, int index, const Flight& f, l
         .n(f.seats).n(avail).n(ok ? 1 : 0).f(reason).emit(out);
 }
 
-//  Command handlers
 static bool needArgs(DynArray<String>& a, int n, String& out) {
     if (a.size() < n) { fail(out, "bad_request", "Missing request fields"); return false; }
     return true;
@@ -1059,7 +1004,7 @@ static void cmdSearch(DynArray<String>& a, String& out) {
     Row("OK").emit(out);
     DynArray<int> usedFlights;
     if (found) {
-        Stack<int> path;                                  // edges come out destination -> source
+        Stack<int> path;                                  
         for (int cur = ti; cur != si; cur = prevNode[cur]) path.push(prevEdge[cur]);
         DynArray<int> legFlight;
         DynArray<long long> legDep, legArr;
@@ -1087,7 +1032,7 @@ static void cmdSearch(DynArray<String>& a, String& out) {
     } else {
         Row("NOROUTE").emit(out);
     }
-    // other direct flights between the two airports on that day
+    
     DynArray<Flight> alts;
     for (int i = 0; i < fl.size(); i++) {
         if (fl[i].origin != from || fl[i].dest != to || !fl[i].operatesOn(day)) continue;
@@ -1151,7 +1096,7 @@ static void cmdBook(DynArray<String>& a, String& out) {
 
     String date = fmtDate(day);
     DynArray<PaxRecord> existing;
-    loadBooking(number, date, existing);                  // sorted by seat -> binary search below
+    loadBooking(number, date, existing);                  
 
     DynArray<PaxRecord> fresh;
     for (int k = 0; k < (int)count; k++) {
@@ -1179,8 +1124,7 @@ static void cmdBook(DynArray<String>& a, String& out) {
         p.bagKg = (int)bag;
         fresh.push(p);
     }
-
-    // unique booking reference (binary search over the sorted ticket index)
+    
     DynArray<TicketRec> tickets;
     loadTickets(tickets);
     quickSort(tickets, ticketPnrCmp);
@@ -1188,7 +1132,7 @@ static void cmdBook(DynArray<String>& a, String& out) {
     while (binarySearch(tickets, pnr, ticketPnrKeyCmp) >= 0) pnr = randomPnr();
 
     String bookedAt = fmtDateTime(now);
-    DynArray<PaxRecord> known = existing;                 // used to keep bag tags unique
+    DynArray<PaxRecord> known = existing;                 
     for (int k = 0; k < fresh.size(); k++) {
         PaxRecord& p = fresh[k];
         p.pnr = pnr;
@@ -1223,7 +1167,7 @@ static void cmdBook(DynArray<String>& a, String& out) {
     printf("[booking] %s booked %d seat(s) on %s %s  PNR %s\n", user.c_str(), (int)count, number.c_str(), date.c_str(), pnr.c_str());
 }
 
-// all boarding passes of one passenger account
+
 static void cmdMyPasses(DynArray<String>& a, String& out) {
     if (!needArgs(a, 2, out)) return;
     String user = a[1].trimmed();
@@ -1233,7 +1177,7 @@ static void cmdMyPasses(DynArray<String>& a, String& out) {
     DynArray<Flight> fl;
     loadFlights(fl);
     Row("OK").emit(out);
-    int i = lowerBound(tickets, user, ticketUserKeyCmp);       // binary search for the first ticket of the user
+    int i = lowerBound(tickets, user, ticketUserKeyCmp);       
     int end = upperBound(tickets, user, ticketUserKeyCmp);
     for (; i < end; i++) {
         const TicketRec& t = tickets[i];
@@ -1255,9 +1199,12 @@ static void cmdMyPasses(DynArray<String>& a, String& out) {
     }
 }
 
-// ----------------------------------------------------------------------------
-//  Check-in staff
-// ----------------------------------------------------------------------------
+static const char* checkInState(long long now, long long dep) {
+    if (now < dep - CHECKIN_OPEN_MIN * 60LL) return "EARLY";
+    if (now > dep - CHECKIN_CUTOFF_MIN * 60LL) return "CLOSED";
+    return "OPEN";
+}
+
 static void cmdCheckInFlights(DynArray<String>& a, String& out) {
     if (!needArgs(a, 2, out)) return;
     long long day;
@@ -1275,9 +1222,11 @@ static void cmdCheckInFlights(DynArray<String>& a, String& out) {
         loadBooking(f.number, date, pax);
         int checked = 0;
         for (int k = 0; k < pax.size(); k++) if (pax[k].checkedIn) checked++;
-        long long closes = f.departure(day) - CHECKIN_CUTOFF_MIN * 60LL;
+        long long dep = f.departure(day);
+        const char* st = checkInState(now, dep);
         Row("F").f(f.number).f(f.origin).f(f.dest).f(fmtHM(f.depMin)).n(pax.size()).n(checked)
-            .n(now <= closes ? 1 : 0).f(fmtDateHM(closes)).emit(out);
+            .n(strcmp(st, "OPEN") == 0 ? 1 : 0).f(fmtDateHM(dep - CHECKIN_CUTOFF_MIN * 60LL)).f(st)
+            .f(fmtDateHM(dep - CHECKIN_OPEN_MIN * 60LL)).emit(out);
     }
 }
 
@@ -1291,13 +1240,15 @@ static void cmdCheckInList(DynArray<String>& a, String& out) {
     int fi = findFlight(fl, number);
     if (fi < 0) { fail(out, "flight_not_found", "Unknown flight."); return; }
     const Flight& f = fl[fi];
-    long long closes = f.departure(day) - CHECKIN_CUTOFF_MIN * 60LL;
-    Row("OK").n(nowCivil() <= closes ? 1 : 0).f(fmtDateHM(closes)).f(fmtHM(f.depMin)).f(f.origin).f(f.dest).emit(out);
+    long long dep = f.departure(day);
+    const char* st = checkInState(nowCivil(), dep);
+    Row("OK").n(strcmp(st, "OPEN") == 0 ? 1 : 0).f(fmtDateHM(dep - CHECKIN_CUTOFF_MIN * 60LL)).f(fmtHM(f.depMin))
+        .f(f.origin).f(f.dest).f(st).f(fmtDateHM(dep - CHECKIN_OPEN_MIN * 60LL)).emit(out);
     DynArray<PaxRecord> pax;
     loadBooking(number, fmtDate(day), pax);
     for (int i = 0; i < pax.size(); i++)
         Row("P").f(pax[i].pnr).f(pax[i].seat).f(pax[i].name).n(pax[i].age).f(pax[i].gender)
-            .n(pax[i].checkedIn ? 1 : 0).f(pax[i].checkInTime).n(pax[i].bagKg).emit(out);   // the check-in code is NOT sent
+            .n(pax[i].checkedIn ? 1 : 0).f(pax[i].checkInTime).n(pax[i].bagKg).emit(out);   
 }
 
 static void cmdCheckIn(DynArray<String>& a, String& out) {
@@ -1314,13 +1265,21 @@ static void cmdCheckIn(DynArray<String>& a, String& out) {
     String date = fmtDate(day);
     DynArray<PaxRecord> pax;
     if (!loadBooking(number, date, pax)) { fail(out, "not_found", "No bookings exist for this flight and date."); return; }
-    int idx = locatePax(pax, pnr, seat);                  // binary search on (PNR, seat)
+    int idx = locatePax(pax, pnr, seat);                  
     if (idx < 0) { fail(out, "not_found", "Passenger not found for that PNR and seat."); return; }
     if (pax[idx].checkedIn) { fail(out, "already_checked_in", "This passenger is already checked in."); return; }
     long long now = nowCivil();
-    long long closes = fl[fi].departure(day) - CHECKIN_CUTOFF_MIN * 60LL;
+    long long dep = fl[fi].departure(day);
+    long long opens = dep - CHECKIN_OPEN_MIN * 60LL, closes = dep - CHECKIN_CUTOFF_MIN * 60LL;
+    if (now < opens) {
+        String m = String("Check-in is not open yet. It opens ") + String::fromInt(CHECKIN_OPEN_MIN)
+                 + " minutes before departure (at " + fmtDateHM(opens) + ").";
+        fail(out, "checkin_not_open", m.c_str());
+        return;
+    }
     if (now > closes) {
-        String m = String("Check-in is allowed only up to 3 hours before departure (closed at ") + fmtDateHM(closes) + ").";
+        String m = String("Check-in closed ") + String::fromInt(CHECKIN_CUTOFF_MIN)
+                 + " minutes before departure (at " + fmtDateHM(closes) + ").";
         fail(out, "checkin_closed", m.c_str());
         return;
     }
@@ -1333,9 +1292,6 @@ static void cmdCheckIn(DynArray<String>& a, String& out) {
     Row("OK").f(pax[idx].name).f(seat).emit(out);
 }
 
-// ----------------------------------------------------------------------------
-//  Simulator
-// ----------------------------------------------------------------------------
 static void cmdSimSetTime(DynArray<String>& a, String& out) {
     if (!needArgs(a, 2, out)) return;
     long long target;
@@ -1352,9 +1308,11 @@ static void cmdSimReset(DynArray<String>&, String& out) {
     Row("OK").f(fmtDateTime(nowCivil())).emit(out);
 }
 
+static long long arrivalOf(const Flight& f, long long day) { return f.departure(day) + f.durMin * 60LL; }
+
 static bool inSimWindow(const Flight& f, long long day, long long now) {
-    long long dep = f.departure(day);
-    return dep >= now && dep <= now + SIM_WINDOW_MIN * 60LL;
+    long long arr = arrivalOf(f, day);
+    return arr <= now && now <= arr + SIM_WINDOW_MIN * 60LL;
 }
 
 static void cmdSimFlights(DynArray<String>&, String& out) {
@@ -1363,15 +1321,15 @@ static void cmdSimFlights(DynArray<String>&, String& out) {
     loadFlights(fl);
     long long now = nowCivil();
     long long today = floorDiv(now, 86400);
-    for (int d = 0; d < 2; d++)
+    for (int d = -1; d <= 0; d++)                         
         for (int i = 0; i < fl.size(); i++)
             if (fl[i].operatesOn(today + d) && inSimWindow(fl[i], today + d, now)) { hits.push(fl[i]); hitDays.push(today + d); }
-    // order by absolute departure time (small list -> insertion sort on an index array)
+    
     DynArray<int> order;
     for (int i = 0; i < hits.size(); i++) order.push(i);
     for (int i = 1; i < order.size(); i++) {
         int key = order[i], j = i - 1;
-        while (j >= 0 && hits[order[j]].departure(hitDays[order[j]]) > hits[key].departure(hitDays[key])) { order[j + 1] = order[j]; j--; }
+        while (j >= 0 && arrivalOf(hits[order[j]], hitDays[order[j]]) > arrivalOf(hits[key], hitDays[key])) { order[j + 1] = order[j]; j--; }
         order[j + 1] = key;
     }
     Row("OK").n(order.size()).emit(out);
@@ -1386,7 +1344,8 @@ static void cmdSimFlights(DynArray<String>&, String& out) {
             if (pax[k].checkedIn && pax[k].bagStatus == "NONE") pending++;
             if (pax[k].bagStatus == "ONBELT") onBelt++;
         }
-        Row("F").f(f.number).f(f.origin).f(f.dest).f(date).f(fmtHM(f.depMin)).n(pax.size()).n(checked).n(pending).n(onBelt).emit(out);
+        Row("F").f(f.number).f(f.origin).f(f.dest).f(date).f(fmtHM(f.depMin)).n(pax.size()).n(checked).n(pending).n(onBelt)
+            .f(fmtHM((int)(floorMod(arrivalOf(f, hitDays[order[o]]), 86400) / 60))).emit(out);
     }
 }
 
@@ -1398,7 +1357,7 @@ static void cmdSimCheckedIn(DynArray<String>& a, String& out) {
     loadBooking(a[1].trimmed(), fmtDate(day), pax);
     Row("OK").emit(out);
     for (int i = 0; i < pax.size(); i++) {
-        if (!pax[i].checkedIn) continue;                  // only checked-in passengers are offered
+        if (!pax[i].checkedIn) continue;                  
         Row("P").f(pax[i].pnr).f(pax[i].seat).f(pax[i].name).n(pax[i].age).f(pax[i].gender)
             .f(pax[i].bagTag).n(pax[i].bagKg).f(pax[i].bagStatus).f(pax[i].checkInTime).emit(out);
     }
@@ -1416,7 +1375,7 @@ static void cmdSimPush(DynArray<String>& a, String& out) {
     if (fi < 0) { fail(out, "flight_not_found", "Unknown flight."); return; }
     long long now = nowCivil();
     if (!fl[fi].operatesOn(day) || !inSimWindow(fl[fi], day, now)) {
-        fail(out, "outside_window", "The flight is not departing within 3 hours of the system time."); return;
+        fail(out, "outside_window", "Luggage can only be put on the belt after the flight has arrived (and within 3 hours of its arrival)."); return;
     }
     DynArray<PaxRecord> pax;
     if (!loadBooking(number, date, pax)) { fail(out, "not_found", "No bookings for this flight."); return; }
@@ -1485,9 +1444,6 @@ static void cmdSimLoss(DynArray<String>& a, String& out) {
         .f(fmtTime(n->data.pushCivil + (long long)belt->offsetOf((int)sensor))).emit(out);
 }
 
-// ----------------------------------------------------------------------------
-//  Belt view (staff sees every bag, a passenger only his own)
-// ----------------------------------------------------------------------------
 static void cmdBelt(DynArray<String>& a, String& out) {
     if (!needArgs(a, 3, out)) return;
     bool staffView = (a[1].trimmed().upper() == "STAFF");
@@ -1509,7 +1465,7 @@ static void cmdBelt(DynArray<String>& a, String& out) {
             .f(b.deliveredTime.empty() ? "-" : b.deliveredTime.c_str())
             .f(b.recoveredInfo.empty() ? "-" : b.recoveredInfo.c_str()).emit(out);
     }
-    if (!staffView) {                                    // bags that are booked but not on the belt yet
+    if (!staffView) {                                    
         DynArray<TicketRec> tickets;
         loadTickets(tickets);
         heapSort(tickets, ticketUserCmp);
@@ -1520,7 +1476,7 @@ static void cmdBelt(DynArray<String>& a, String& out) {
         for (; i < end; i++) {
             int fi = findFlight(fl, tickets[i].flight);
             long long day;
-            if (fi < 0 || !parseDate(tickets[i].date, &day) || fl[fi].departure(day) < cnow) continue;
+            if (fi < 0 || !parseDate(tickets[i].date, &day) || arrivalOf(fl[fi], day) + SIM_WINDOW_MIN * 60LL < cnow) continue;
             DynArray<PaxRecord> pax;
             loadBooking(tickets[i].flight, tickets[i].date, pax);
             for (int k = 0; k < pax.size(); k++)
@@ -1546,9 +1502,6 @@ static void cmdBeltSafe(DynArray<String>& a, String& out) {
     Row("OK").emit(out);
 }
 
-// ----------------------------------------------------------------------------
-//  Dispatcher
-// ----------------------------------------------------------------------------
 static bool isPollingCommand(const String& c) {
     return c == "TIME" || c == "BELT" || c == "SEATS" || c == "CI_LIST" || c == "CI_FLIGHTS" || c == "PING"
         || c == "SIM_FLIGHTS" || c == "SIM_CHECKEDIN" || c == "SIM_ONBELT" || c == "STOPS" || c == "MYPASSES";
@@ -1558,7 +1511,7 @@ static void handleRequest(const String& line, String& out) {
     DynArray<String> a;
     String::split(line.trimmed(), '|', a);
     String cmd = a[0].trimmed().upper();
-    if (!isPollingCommand(cmd)) printf("[request] %s\n", cmd.c_str());       // never log arguments (passwords)
+    if (!isPollingCommand(cmd)) printf("[request] %s\n", cmd.c_str());       
     out.clear();
     if      (cmd == "PING")            Row("OK").f("pong").emit(out);
     else if (cmd == "TIME")            cmdTime(a, out);
@@ -1586,11 +1539,7 @@ static void handleRequest(const String& line, String& out) {
     else fail(out, "unknown_command", "Unknown command.");
 }
 
-
-//  Networking (plain TCP, one request per connection)
-#ifndef MSG_NOSIGNAL
 #define MSG_NOSIGNAL 0
-#endif
 
 static bool recvLine(sock_t c, String& line) {
     line.clear();
@@ -1643,13 +1592,9 @@ int main(int argc, char** argv) {
     if (argc > 1) port = atoi(argv[1]);
     if (port <= 0 || port > 65535) port = 8080;
 
-#ifdef _WIN32
     WSADATA wsa;
     if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) { printf("WSAStartup failed\n"); return 1; }
-#else
-    signal(SIGPIPE, SIG_IGN);
-#endif
-    setvbuf(stdout, 0, _IONBF, 0);                        // log lines appear immediately, even when redirected to a file
+    setvbuf(stdout, 0, _IONBF, 0);                        
     srand((unsigned)(time(0) ^ (unsigned)(realNowSec() * 1000.0)));
     ensureDefaults();
     belt = new Belt();
@@ -1659,10 +1604,6 @@ int main(int argc, char** argv) {
         cout << "cannot create socket" << endl;
         return 1;
     }
-#ifndef _WIN32
-    int yes = 1;
-    setsockopt(ls, SOL_SOCKET, SO_REUSEADDR, (const char*)&yes, sizeof(yes));
-#endif
     struct sockaddr_in addr;
     memset(&addr, 0, sizeof(addr));
     addr.sin_family = AF_INET;
@@ -1688,7 +1629,7 @@ int main(int argc, char** argv) {
         FD_SET(ls, &rf);
         struct timeval tv;
         tv.tv_sec = 0;
-        tv.tv_usec = 200000;                              // wake up 5x per second to run the belt timetable
+        tv.tv_usec = 200000;                              
         int r = select((int)ls + 1, &rf, 0, 0, &tv);
         belt->tick(realNowSec());
         if (r <= 0 || !FD_ISSET(ls, &rf)) continue;
