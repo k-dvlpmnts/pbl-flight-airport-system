@@ -191,8 +191,8 @@ void TrackLuggagePage::render(const BeltSnapshot &snap)
         setCell(m_table, r, 1, p.name);
         setCell(m_table, r, 2, p.flight + QStringLiteral("  ") + p.date + QStringLiteral("  ") + p.dep);
         setCell(m_table, r, 3, QStringLiteral("Not on the belt yet"), &grey);
-        setCell(m_table, r, 4, p.checkedIn ? QStringLiteral("Checked in - waiting to be put on the belt")
-                                           : QStringLiteral("Not checked in yet (check-in closes 3 hours before departure)"));
+        setCell(m_table, r, 4, p.checkedIn ? QStringLiteral("Checked in - your bag goes on the belt after the flight arrives")
+                                           : QStringLiteral("Not checked in yet (check-in is open from 3 hours until 30 minutes before departure)"));
     }
     m_empty->setVisible(rows == 0);
 }

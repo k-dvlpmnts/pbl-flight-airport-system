@@ -68,7 +68,7 @@ HomePage::HomePage(MainWindow *mw, QWidget *parent) : BasePage(mw, parent)
     row->addStretch(1);
 
     OptionCard *passenger = new OptionCard(QString::fromUtf8("\xE2\x9C\x88"), QStringLiteral("Passenger login"),
-        QStringLiteral("Book tickets, view boarding passes and track your luggage on the belt."),
+        QStringLiteral("Book tickets, view tickets and track your luggage on the belt."),
         QStringLiteral("Passenger login"), QStringLiteral("#dbeafe"), QStringLiteral("#2563eb"), this);
     OptionCard *staff = new OptionCard(QString::fromUtf8("\xE2\x9A\x99"), QStringLiteral("Staff login"),
         QStringLiteral("Check-in counter and baggage belt staff. Administrators create staff accounts here."),
@@ -188,9 +188,9 @@ PassengerPortalPage::PassengerPortalPage(MainWindow *mw, QWidget *parent) : Base
     OptionCard *book = new OptionCard(QString::fromUtf8("\xE2\x9C\x88"), QStringLiteral("Book ticket"),
         QStringLiteral("Pick From, To and a date, choose your seats and enter the passenger details."),
         QStringLiteral("Book ticket"), QStringLiteral("#dbeafe"), QStringLiteral("#2563eb"), this);
-    OptionCard *pass = new OptionCard(QString::fromUtf8("\xE2\x98\xB0"), QStringLiteral("Boarding pass"),
-        QStringLiteral("See your tickets and boarding passes with the PNR and check-in code."),
-        QStringLiteral("My boarding passes"), QStringLiteral("#ede9fe"), QStringLiteral("#6d28d9"), this);
+    OptionCard *pass = new OptionCard(QString::fromUtf8("\xE2\x98\xB0"), QStringLiteral("Tickets"),
+        QStringLiteral("See your tickets with the PNR and check-in code."),
+        QStringLiteral("My Tickets"), QStringLiteral("#ede9fe"), QStringLiteral("#6d28d9"), this);
     OptionCard *track = new OptionCard(QString::fromUtf8("\xE2\x97\x8E"), QStringLiteral("Track luggage"),
         QStringLiteral("Follow your bag along the baggage belt, live. You are alerted if it falls off."),
         QStringLiteral("Track luggage"), QStringLiteral("#ccfbf1"), QStringLiteral("#0f766e"), this);

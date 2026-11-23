@@ -4,6 +4,7 @@
 #include "serverapi.h"
 #include "theme.h"
 
+#include <QRegularExpression>
 #include <QFrame>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -17,7 +18,7 @@ LoginPage::LoginPage(MainWindow *mw, const QString &role, QWidget *parent)
     QString title, subtitle, icon, iconBg, iconFg;
     if (role == QLatin1String("PASSENGER")) {
         title = QStringLiteral("Passenger login");
-        subtitle = QStringLiteral("Book flights, get boarding passes and track your luggage.");
+        subtitle = QStringLiteral("Book flights, get ticket and track your luggage.");
         icon = QString::fromUtf8("\xE2\x9C\x88");                                         // ✈
         iconBg = QStringLiteral("#dbeafe"); iconFg = QStringLiteral("#2563eb");
     } else if (role == QLatin1String("STAFF")) {
@@ -116,6 +117,7 @@ QString LoginPage::pageTitle() const
 
 void LoginPage::onEnter()
 {
+    m_user->clear();
     m_pass->clear();
     m_msg->hide();
     m_user->setFocus();
@@ -144,13 +146,90 @@ static QString connectionProblem()
     return QStringLiteral("Cannot reach the server at %1:%2.\nMake sure the server is running and the address on the first page is correct.")
         .arg(ServerApi::instance().host()).arg(ServerApi::instance().port());
 }
+static bool isValidUsername(const QString &username)
+{
+    if (username.length() < 4 || username.length() > 20)
+        return false;
 
+    static const QStringList reserved{
+        "admin",
+        "administrator",
+        "root",
+        "system"
+    };
+
+    if (reserved.contains(username.toLower()))
+        return false;
+
+    if (!username.front().isLetter())
+        return false;
+
+    QRegularExpression allowed("^[A-Za-z][A-Za-z0-9_.]*$");
+
+    if (!allowed.match(username).hasMatch())
+        return false;
+
+    if (username.contains("..") ||
+        username.contains("__") ||
+        username.contains("._") ||
+        username.contains("_."))
+        return false;
+    const QChar last = username.back();
+
+    if (last == '_' || last == '.')
+        return false;
+
+    return true;
+}
+
+static bool isValidPassword(const QString &password)
+{
+    if (password.length() < 8)
+        return false;
+
+    bool hasUpper = false;
+    bool hasLower = false;
+    bool hasDigit = false;
+    bool hasSpecial = false;
+
+    for (QChar ch : password) {
+        if (ch.isUpper())
+            hasUpper = true;
+        else if (ch.isLower())
+            hasLower = true;
+        else if (ch.isDigit())
+            hasDigit = true;
+        else
+            hasSpecial = true;
+    }
+
+    return hasUpper && hasLower && hasDigit && hasSpecial;
+}
 void LoginPage::doLogin()
 {
     const QString u = m_user->text().trimmed();
     const QString p = m_pass->text();
     if (u.isEmpty() || p.isEmpty()) {
         showMessage(QStringLiteral("Please enter both username and password."), false);
+        return;
+    }
+
+    if (!isValidUsername(u)) {
+            showMessage(
+                    QStringLiteral(
+                            "Username must be 4-20 characters long, start with a letter, "
+                            "contain only letters, numbers, '_' or '.', and must not end "
+                            "with special characters."
+                        ),
+                        false
+                    );
+        return;
+    }
+
+    if (!isValidPassword(p)) {
+        showMessage(
+            QStringLiteral("Password must contain at least 8 characters, one uppercase letter, one lowercase letter, one number and one special character."),
+            false);
         return;
     }
     setBusy(true);
@@ -173,6 +252,19 @@ void LoginPage::doRegister()
         showMessage(QStringLiteral("Choose a username and a password, then press Create account."), false);
         return;
     }
+    if (!isValidUsername(u)) {
+        showMessage(
+            QStringLiteral("Username must be 4-20 characters, start with a letter and contain only letters, numbers or underscore."),
+            false);
+        return;
+    }
+
+    if (!isValidPassword(p)) {
+        showMessage(
+            QStringLiteral("Password must contain at least 8 characters, one uppercase letter, one lowercase letter, one number and one special character."),
+            false);
+        return;
+    }
     setBusy(true);
     PendingReply *r = ServerApi::instance().send(QStringList{QStringLiteral("REGISTER"), u, p});
     connect(r, &PendingReply::finished, this, [this](const Reply &rep) {
@@ -183,3 +275,4 @@ void LoginPage::doRegister()
         m_pass->clear();
     });
 }
+

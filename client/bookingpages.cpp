@@ -548,7 +548,7 @@ void PassengerDetailsPage::confirm()
         const QString pnr = rep.headField(1);
         QMessageBox::information(this, QStringLiteral("Booking confirmed"),
             QStringLiteral("Your booking is confirmed.\n\nBooking reference (PNR):  %1\nTotal fare:  %2\n\n"
-                           "Your boarding passes with the check-in codes are shown next.")
+                           "Your tickets with the check-in codes are shown next.")
                 .arg(pnr, Theme::money(rep.headField(2).toDouble())));
         app()->bookPage()->clearSelection();
         app()->boardingPage()->showPnr(pnr);
