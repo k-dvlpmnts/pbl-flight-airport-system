@@ -93,7 +93,7 @@ CheckInPage::CheckInPage(MainWindow *mw, QWidget *parent)
     bb->setContentsMargins(18, 10, 18, 10);
     m_banner = new QLabel(bannerBox);
     m_banner->setWordWrap(true);
-    m_banner->setText(QStringLiteral("Passengers can be checked in strictly up to 3 hours before their flight departs. "
+    m_banner->setText(QStringLiteral("Check-in opens 3 hours before departure and closes 30 minutes before departure. "
                                      "Select a flight, pick the passenger and type the check-in code from the boarding pass."));
     bb->addWidget(m_banner);
     root->addWidget(bannerBox);
@@ -248,8 +248,10 @@ void CheckInPage::fillFlights(const QVector<QStringList> &rows)
         setCell(m_flights, i, 2, fld(f, 4));
         setCell(m_flights, i, 3, fld(f, 5));
         setCell(m_flights, i, 4, fld(f, 6));
-        setCell(m_flights, i, 5, open ? (QStringLiteral("Open until ") + fld(f, 8).mid(11)) : QStringLiteral("Closed"),
-                open ? "#15803d" : "#b91c1c");
+        const bool early = (fld(f, 9) == QLatin1String("EARLY"));
+        setCell(m_flights, i, 5, open ? (QStringLiteral("Open until ") + fld(f, 8).mid(11))
+                                      : (early ? (QStringLiteral("Opens ") + fld(f, 10).mid(5)) : QStringLiteral("Closed")),
+                open ? "#15803d" : (early ? "#b45309" : "#b91c1c"));
         if (fld(f, 1) == m_flightId) select = i;
     }
     if (select >= 0) m_flights->selectRow(select);
@@ -267,6 +269,8 @@ void CheckInPage::loadPassengers()
         if (!rep.ok) return;
         m_open = (rep.headField(1) == QLatin1String("1"));
         m_closes = rep.headField(2);
+        m_state = rep.headField(6);
+        m_opens = rep.headField(7);
         m_paxRows = rep.rowsOf(QStringLiteral("P"));
         fillPassengers();
     });
@@ -330,8 +334,12 @@ void CheckInPage::updateForm()
                        .arg(fld(*sel, 3), fld(*sel, 2), fld(*sel, 1), fld(*sel, 4),
                             fld(*sel, 8).toInt() > 0 ? fld(*sel, 8) + QStringLiteral(" kg") : QStringLiteral("none"));
     if (checked) text += QStringLiteral("<br><span style='color:#15803d'><b>Already checked in.</b></span>");
-    else if (!m_open) text += QStringLiteral("<br><span style='color:#b91c1c'><b>Check-in closed at ") + m_closes
-                              + QStringLiteral(" (3 hours before departure).</b></span>");
+    else if (!m_open && m_state == QLatin1String("EARLY"))
+        text += QStringLiteral("<br><span style='color:#b45309'><b>Check-in is not open yet. It opens at ") + m_opens
+                + QStringLiteral(" (3 hours before departure).</b></span>");
+    else if (!m_open)
+        text += QStringLiteral("<br><span style='color:#b91c1c'><b>Check-in closed at ") + m_closes
+                + QStringLiteral(" (30 minutes before departure).</b></span>");
     m_selected->setText(text);
     m_checkBtn->setEnabled(!checked && m_open);
 }

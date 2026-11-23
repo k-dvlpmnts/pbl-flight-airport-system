@@ -49,6 +49,8 @@ private:
     QString m_paxSig;
     bool m_open;
     QString m_closes;
+    QString m_state;      // EARLY, OPEN or CLOSED
+    QString m_opens;
     bool m_dateInit;
     int m_pollCount;
 };
