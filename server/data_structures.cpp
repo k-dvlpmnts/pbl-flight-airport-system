@@ -1,3 +1,21 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef DATA_STRUCTURES_CPP
 #define DATA_STRUCTURES_CPP
 
 #include <stdio.h>
@@ -5,6 +23,12 @@
 #include <string.h>
 
 namespace DataStructures {
+
+
+
+
+
+
 
 class Node {
 public:
@@ -19,6 +43,9 @@ private:
 public:
     LinkedList() : head(0) {}
     ~LinkedList() {
+#ifdef DS_SELF_TEST
+        printf("Destructor Called\n");
+#endif
         Node* itr = head;
         while (itr) {
             Node* nx = itr->next;
@@ -93,6 +120,8 @@ public:
 };
 
 
+
+
 template <class T>
 class DynArray {
 private:
@@ -164,6 +193,8 @@ public:
         count = n;
     }
 };
+
+
 
 
 class String {
@@ -327,6 +358,8 @@ inline bool operator<(const String& a, const String& b) { return a.compare(b) < 
 inline bool operator>(const String& a, const String& b) { return a.compare(b) > 0; }
 
 
+
+
 template <class T>
 struct StackNode {
     T data;
@@ -402,6 +435,9 @@ public:
 };
 
 
+
+
+
 template <class T>
 struct DNode {
     T data;
@@ -465,6 +501,8 @@ public:
 };
 
 
+
+
 struct HeapItem {
     long long key;
     int value;
@@ -510,10 +548,20 @@ public:
     }
 };
 
+
+
+
+
+
+
 class EdgeModel {
 public:
     virtual ~EdgeModel() {}
-    virtual bool traverse(int edgeId, int fromNode, long long timeAtFrom, bool isStart, long long* arrivalAtTo) = 0;
+    
+    
+    
+    virtual bool traverse(int edgeId, int fromNode, long long timeAtFrom,
+                          bool isStart, long long* arrivalAtTo) = 0;
 };
 
 struct GraphEdge {
@@ -535,6 +583,7 @@ public:
     int nodeCount() const { return n; }
     void addEdge(int u, int v, int id) { adj[u].push(GraphEdge(v, id)); }
     const DynArray<GraphEdge>& edges(int u) const { return adj[u]; }
+
     
     bool earliestArrival(int src, int dst, long long startTime, EdgeModel* model,
                          int* prevNode, int* prevEdge, long long* arrival) const {
@@ -564,3 +613,82 @@ public:
         return arrival[dst] < INF;
     }
 };
+
+} 
+
+
+
+
+#ifdef DS_SELF_TEST
+using namespace DataStructures;
+
+class FixedWeight : public EdgeModel {
+public:
+    int to[8], w[8];
+    bool traverse(int e, int, long long t, bool, long long* a) { *a = t + w[e]; return true; }
+};
+
+int main() {
+    
+    LinkedList* l1 = new LinkedList;
+    l1->insertAtBegin(1); l1->print();
+    l1->insertAtBegin(2); l1->print();
+    l1->insertAtEnd(3);   l1->print();
+    l1->insertAtEnd(4);   l1->print();
+    l1->insertAtBegin(6); l1->print();
+    l1->deleteAtBegin();  l1->print();
+    l1->deleteAtEnd();    l1->print();
+    l1->deleteValueK(2);  l1->print();
+    l1->deleteValueK(99); l1->print();
+    delete l1;
+
+    DynArray<int> arr;
+    for (int i = 0; i < 100; i++) arr.push(i * 3);
+    arr.removeAt(0); arr.insertAt(0, -5);
+    printf("DynArray size=%d first=%d last=%d\n", arr.size(), arr[0], arr.last());
+
+    String s("  hello|world|42  ");
+    DynArray<String> parts;
+    String::split(s.trimmed(), '|', parts);
+    printf("String split -> %d parts: %s %s %lld\n", parts.size(), parts[0].c_str(),
+           parts[1].c_str(), parts[2].toLong());
+    String t = String("a") + String("b") + "c";
+    t += 'd'; t.appendInt(-12); t.appendDouble(3.14159, 2);
+    printf("String build -> %s (len %d) double=%.3f\n", t.c_str(), t.length(), String("2.5").toDouble());
+
+    Stack<int> st; st.push(1); st.push(2); st.push(3);
+    printf("Stack pop order:");
+    while (!st.empty()) printf(" %d", st.pop());
+    printf("\n");
+    Queue<int> q; q.enqueue(1); q.enqueue(2); q.enqueue(3);
+    printf("Queue order:");
+    while (!q.empty()) printf(" %d", q.dequeue());
+    printf("\n");
+
+    DoublyLinkedList<int> dl;
+    DNode<int>* b = dl.pushBack(2); dl.pushBack(3); dl.pushFront(1); dl.insertAfter(b, 99);
+    printf("DLL forward:");
+    for (DNode<int>* n = dl.head(); n; n = n->next) printf(" %d", n->data);
+    printf("  backward:");
+    for (DNode<int>* n = dl.tail(); n; n = n->prev) printf(" %d", n->data);
+    printf("\n");
+
+    MinHeap h; h.push(5, 50); h.push(1, 10); h.push(3, 30); h.push(2, 20);
+    printf("Heap order:");
+    while (!h.empty()) printf(" %d", h.pop().value);
+    printf("\n");
+
+    
+    Graph g(4); FixedWeight fw;
+    g.addEdge(0, 1, 0); fw.w[0] = 4;
+    g.addEdge(0, 2, 1); fw.w[1] = 1;
+    g.addEdge(2, 1, 2); fw.w[2] = 2;
+    g.addEdge(1, 3, 3); fw.w[3] = 1;
+    int pn[4], pe[4]; long long ar[4];
+    bool ok = g.earliestArrival(0, 3, 0, &fw, pn, pe, ar);
+    printf("Dijkstra reachable=%d cost=%lld\n", ok, ar[3]);
+    return 0;
+}
+#endif
+
+#endif 

@@ -1,8 +1,11 @@
 #include <iostream>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 
+#ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
+#endif
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <direct.h>
@@ -18,25 +21,26 @@ using namespace DataStructures;
 using namespace Sorting;
 using namespace std;
 
-#define BOOKING_WINDOW_DAYS 30      
-#define CHECKIN_CUTOFF_MIN 30     
-#define SIM_WINDOW_MIN 180     
-#define MIN_LAYOVER_MIN 60      
-#define BOARDING_BEFORE_MIN 40
-#define MAX_PAX_PER_BOOKING 9
-#define BELT_SPEED_MPS 0.5    
-#define BELT_TOLERANCE_SEC 1.0     
-#define BELT_MIN_GAP_SEC 3.0     
-#define MAX_SENSORS 8
-#define BELT_REPORT_BAGS 60
+#define BOOKING_WINDOW_DAYS   30      
+#define CHECKIN_OPEN_MIN  180    
+#define CHECKIN_CUTOFF_MIN  30     
+#define SIM_WINDOW_MIN      180    
+#define MIN_LAYOVER_MIN     60      
+#define BOARDING_BEFORE_MIN   40
+#define MAX_PAX_PER_BOOKING   9
+#define BELT_SPEED_MPS     2.0     
+#define BELT_TOLERANCE_SEC  1.0     
+#define BELT_MIN_GAP_SEC      3.0     
+#define MAX_SENSORS           8
+#define BELT_REPORT_BAGS      60
 
-#define F_FLIGHTS "flights.dat"
-#define F_AIRPORTS "airports.dat"
-#define F_PASSENGERS "passengers_users.dat"
-#define F_STAFF "staff_users.dat"
-#define F_ADMINS "admin_users.dat"
-#define F_TICKETS "booked_tickets.dat"
-#define DIR_BOOKINGS "bookings"
+#define F_FLIGHTS   "flights.dat"
+#define F_AIRPORTS    "airports.dat"
+#define F_PASSENGERS  "passengers_users.dat"
+#define F_STAFF    "staff_users.dat"
+#define F_ADMINS    "admin_users.dat"
+#define F_TICKETS   "booked_tickets.dat"
+#define DIR_BOOKINGS  "bookings"
 
 static long long simOffset = 0;
 static bool      simActive = false;
@@ -76,6 +80,11 @@ static double realNowSec() {
     GetSystemTimeAsFileTime(&ft);
     unsigned long long t = ((unsigned long long)ft.dwHighDateTime << 32) | ft.dwLowDateTime;
     return (double)(t / 10000ULL) / 1000.0;
+#else
+    struct timeval tv;
+    gettimeofday(&tv, 0);
+    return (double)tv.tv_sec + tv.tv_usec / 1000000.0;
+#endif
 }
 static long long realCivilNow() {
     time_t t = time(0);
@@ -155,6 +164,9 @@ static bool parseDateTime(const String& s, long long* civil) {
     return true;
 }
 
+
+
+
 static bool fileExists(const char* path) {
     FILE* f = fopen(path, "rb");
     if (!f) return false;
@@ -195,6 +207,8 @@ static bool writeTextFile(const char* path, const String& text) {
     fclose(f);
     return true;
 }
+
+
 static bool appendLine(const char* path, const String& line) {
     bool needNl = false;
     FILE* r = fopen(path, "rb");
@@ -213,6 +227,9 @@ static bool appendLine(const char* path, const String& line) {
     fclose(f);
     return true;
 }
+
+
+
 
 class Row {
 public:
@@ -238,7 +255,9 @@ static String clean(const String& in, int maxLen) {
     return r.trimmed();
 }
 
+
 static int strCmp(const String& a, const String& b) { return a.compare(b); }
+
 
 class Account {
 public:
@@ -339,6 +358,10 @@ static bool validUsername(const String& u) {
     return true;
 }
 
+
+
+
+
 class Flight {
 public:
     String number, origin, dest;
@@ -431,6 +454,9 @@ static int stopIndex(const DynArray<String>& codes, const String& code) {
     return binarySearch(codes, code, strCmp);
 }
 
+
+
+
 static void parseSeat(const String& s, int& row, char& col) {
     row = 0;
     col = 0;
@@ -465,6 +491,12 @@ static String normalizeSeat(const String& s) {
     r.appendChar(col);
     return r;
 }
+
+
+
+
+
+
 class PaxRecord {
 public:
     String pnr, seat, name, gender, username, code, bagTag, checkInTime, bagStatus, bookedAt;
@@ -558,6 +590,9 @@ static bool appendBooking(const String& flight, const String& date, const PaxRec
     return appendLine(path.c_str(), p.toLine());
 }
 
+
+
+
 class TicketRec {
 public:
     String username, pnr, flight, date, bookedAt;
@@ -602,6 +637,10 @@ static int ticketUserCmp(const TicketRec& a, const TicketRec& b) {
 static int ticketUserKeyCmp(const TicketRec& t, const String& user) { return t.username.compare(user); }
 static int ticketPnrCmp(const TicketRec& a, const TicketRec& b) { return a.pnr.compare(b.pnr); }
 static int ticketPnrKeyCmp(const TicketRec& t, const String& pnr) { return t.pnr.compare(pnr); }
+
+
+
+
 static String randomPnr() {
     static const char* alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     String s;
@@ -623,6 +662,7 @@ static String gateFor(const String& flight, long long dayNum) {
     g.appendInt(1 + (h / 4) % 12);
     return g;
 }
+
 
 static void ensureDefaults() {
     MKDIR(DIR_BOOKINGS);
@@ -646,6 +686,9 @@ static void ensureDefaults() {
     }
 }
 
+
+
+
 static int locatePax(DynArray<PaxRecord>& arr, const String& pnr, const String& seat) {
     quickSort(arr, paxPnrSeatCmp);                      
     PaxKey k;
@@ -662,6 +705,7 @@ static bool updateBagStatus(const String& flight, const String& date, const Stri
     arr[i].bagStatus = status;
     return saveBooking(flight, date, arr);
 }
+
 class Sensor {
 public:
     String name;
@@ -770,6 +814,7 @@ public:
         return true;
     }
 
+    
     void tick(double now) {
         int last = sensors.size() - 1;
         for (DNode<BagInfo>* n = line.head(); n; n = n->next) {
@@ -803,6 +848,7 @@ public:
         }
     }
 
+    
     double positionOf(const BagInfo& b, double now) const {
         double L = length();
         if (b.state == BAG_DELIVERED) return L;
@@ -822,6 +868,9 @@ public:
 };
 
 static Belt* belt = 0;                                  
+
+
+
 
 class ScheduleModel : public EdgeModel {
 public:
@@ -856,6 +905,7 @@ public:
     }
 };
 
+
 static bool bookingOpen(const Flight& f, long long dayNum, long long now, String& code, String& reason) {
     if (!f.operatesOn(dayNum)) { code = "not_operating"; reason = "Flight does not operate on this date"; return false; }
     long long dep = f.departure(dayNum);
@@ -886,6 +936,9 @@ static void emitLeg(String& out, const char* kind, int index, const Flight& f, l
         .f(fmtHM((int)(floorMod(dep, 86400) / 60))).f(fmtDateHM(arr)).n(f.durMin).d(f.fare, 2)
         .n(f.seats).n(avail).n(ok ? 1 : 0).f(reason).emit(out);
 }
+
+
+
 
 static bool needArgs(DynArray<String>& a, int n, String& out) {
     if (a.size() < n) { fail(out, "bad_request", "Missing request fields"); return false; }
@@ -1124,6 +1177,7 @@ static void cmdBook(DynArray<String>& a, String& out) {
         p.bagKg = (int)bag;
         fresh.push(p);
     }
+
     
     DynArray<TicketRec> tickets;
     loadTickets(tickets);
@@ -1198,6 +1252,10 @@ static void cmdMyPasses(DynArray<String>& a, String& out) {
         }
     }
 }
+
+
+
+
 
 static const char* checkInState(long long now, long long dep) {
     if (now < dep - CHECKIN_OPEN_MIN * 60LL) return "EARLY";
@@ -1292,6 +1350,9 @@ static void cmdCheckIn(DynArray<String>& a, String& out) {
     Row("OK").f(pax[idx].name).f(seat).emit(out);
 }
 
+
+
+
 static void cmdSimSetTime(DynArray<String>& a, String& out) {
     if (!needArgs(a, 2, out)) return;
     long long target;
@@ -1309,6 +1370,7 @@ static void cmdSimReset(DynArray<String>&, String& out) {
 }
 
 static long long arrivalOf(const Flight& f, long long day) { return f.departure(day) + f.durMin * 60LL; }
+
 
 static bool inSimWindow(const Flight& f, long long day, long long now) {
     long long arr = arrivalOf(f, day);
@@ -1444,6 +1506,9 @@ static void cmdSimLoss(DynArray<String>& a, String& out) {
         .f(fmtTime(n->data.pushCivil + (long long)belt->offsetOf((int)sensor))).emit(out);
 }
 
+
+
+
 static void cmdBelt(DynArray<String>& a, String& out) {
     if (!needArgs(a, 3, out)) return;
     bool staffView = (a[1].trimmed().upper() == "STAFF");
@@ -1502,6 +1567,9 @@ static void cmdBeltSafe(DynArray<String>& a, String& out) {
     Row("OK").emit(out);
 }
 
+
+
+
 static bool isPollingCommand(const String& c) {
     return c == "TIME" || c == "BELT" || c == "SEATS" || c == "CI_LIST" || c == "CI_FLIGHTS" || c == "PING"
         || c == "SIM_FLIGHTS" || c == "SIM_CHECKEDIN" || c == "SIM_ONBELT" || c == "STOPS" || c == "MYPASSES";
@@ -1539,7 +1607,12 @@ static void handleRequest(const String& line, String& out) {
     else fail(out, "unknown_command", "Unknown command.");
 }
 
+
+
+
+#ifndef MSG_NOSIGNAL
 #define MSG_NOSIGNAL 0
+#endif
 
 static bool recvLine(sock_t c, String& line) {
     line.clear();
