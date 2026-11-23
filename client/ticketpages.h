@@ -40,7 +40,7 @@ class BoardingPassPage : public BasePage {
     Q_OBJECT
 public:
     explicit BoardingPassPage(MainWindow *mw, QWidget *parent = nullptr);
-    QString pageTitle() const override { return QStringLiteral("My boarding passes"); }
+    QString pageTitle() const override { return QStringLiteral("My Tickets"); }
     void onEnter() override;
     void onPoll() override;
     void showPnr(const QString &pnr);          // select the passes of a booking (after booking)

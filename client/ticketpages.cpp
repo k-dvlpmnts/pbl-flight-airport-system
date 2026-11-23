@@ -72,7 +72,7 @@ BoardingPassCard::BoardingPassCard(QWidget *parent) : QFrame(parent)
     hl->setContentsMargins(22, 12, 22, 12);
     hl->addWidget(new QLabel(QString::fromUtf8("\xE2\x9C\x88  SKYPORT AIRLINES"), head));
     hl->addStretch(1);
-    hl->addWidget(new QLabel(QStringLiteral("BOARDING PASS"), head));
+    hl->addWidget(new QLabel(QStringLiteral("TICKET"), head));
     root->addWidget(head);
 
     QWidget *body = new QWidget(this);
@@ -130,7 +130,7 @@ BoardingPassCard::BoardingPassCard(QWidget *parent) : QFrame(parent)
     m_barcode = new BarcodeWidget(body);
     b->addWidget(m_barcode);
     QLabel *note = Theme::label(QStringLiteral("Give the PNR and the check-in code to the check-in staff. "
-                                               "Check-in closes 3 hours before departure."), "muted", body);
+                                               "Check-in opens 3 hours before departure and closes 30 minutes before departure."), "muted", body);
     note->setWordWrap(true);
     b->addWidget(note);
     root->addWidget(body);
@@ -218,11 +218,11 @@ BoardingPassPage::BoardingPassPage(MainWindow *mw, QWidget *parent) : BasePage(m
     root->addLayout(left, 5);
 
     QVBoxLayout *right = new QVBoxLayout();
-    right->addWidget(Theme::label(QStringLiteral("Boarding pass"), "h2", this));
+    right->addWidget(Theme::label(QStringLiteral("Tickets"), "h2", this));
     m_card = new BoardingPassCard(this);
     m_card->hide();
     right->addWidget(m_card);
-    m_save = Theme::button(QStringLiteral("Save boarding pass as image"), nullptr, this);
+    m_save = Theme::button(QStringLiteral("Save ticket as image"), nullptr, this);
     m_save->hide();
     right->addWidget(m_save, 0, Qt::AlignLeft);
     right->addStretch(1);
@@ -318,10 +318,10 @@ void BoardingPassPage::saveImage()
 {
     const int r = m_table->currentRow();
     if (r < 0 || r >= m_passes.size()) return;
-    const QString suggested = QStringLiteral("boarding_pass_%1_%2.png").arg(fld(m_passes.at(r), 1), fld(m_passes.at(r), 2));
-    const QString path = QFileDialog::getSaveFileName(this, QStringLiteral("Save boarding pass"), suggested,
+    const QString suggested = QStringLiteral("ticket_%1_%2.png").arg(fld(m_passes.at(r), 1), fld(m_passes.at(r), 2));
+    const QString path = QFileDialog::getSaveFileName(this, QStringLiteral("Save ticket"), suggested,
                                                       QStringLiteral("PNG image (*.png)"));
     if (path.isEmpty()) return;
     if (!m_card->grab().save(path))
-        QMessageBox::warning(this, QStringLiteral("Save boarding pass"), QStringLiteral("The image could not be saved."));
+        QMessageBox::warning(this, QStringLiteral("Save ticket"), QStringLiteral("The image could not be saved."));
 }
