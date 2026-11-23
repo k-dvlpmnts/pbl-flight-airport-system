@@ -1,10 +1,9 @@
-#ifndef DATA_STRUCTURES_CPP
 #define DATA_STRUCTURES_CPP
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-//
+
 namespace DataStructures {
 
 class Node {
@@ -20,9 +19,6 @@ private:
 public:
     LinkedList() : head(0) {}
     ~LinkedList() {
-#ifdef DS_SELF_TEST
-        printf("Destructor Called\n");
-#endif
         Node* itr = head;
         while (itr) {
             Node* nx = itr->next;
@@ -42,7 +38,7 @@ public:
         while (itr->next) itr = itr->next;
         itr->next = newNode;
     }
-    // inserts after the k-th node (1 based); k <= 0 inserts at the beginning
+    
     void insertAtPositionK(int k, int val) {
         if (head == 0 || k <= 0) { insertAtBegin(val); return; }
         Node* newnode = new Node(val);
@@ -76,7 +72,7 @@ public:
         }
         Node* itr = head;
         while (itr->next && itr->next->data != k) itr = itr->next;
-        if (itr->next == 0) return;               // value not present
+        if (itr->next == 0) return;               
         Node* temp = itr->next;
         itr->next = temp->next;
         delete temp;
@@ -96,7 +92,7 @@ public:
     }
 };
 
-// 2. DynArray<T>  - growable contiguous array
+
 template <class T>
 class DynArray {
 private:
@@ -139,7 +135,7 @@ public:
     void clear() { count = 0; }
 
     void push(const T& v) {
-        T copy = v;                       // v may live inside this array
+        T copy = v;                       
         reserve(count + 1);
         items[count++] = copy;
     }
@@ -160,7 +156,7 @@ public:
         for (int i = idx; i < count - 1; i++) items[i] = items[i + 1];
         count--;
     }
-    // grow (with default constructed items) or shrink to exactly n items
+    
     void resize(int n) {
         if (n < 0) n = 0;
         reserve(n);
@@ -169,7 +165,7 @@ public:
     }
 };
 
-// 3. String 
+
 class String {
 private:
     char* buf;
@@ -184,7 +180,7 @@ private:
         memcpy(buf, s, n);
         buf[n] = 0;
     }
-    void reserve(int needLen) {            // makes room for needLen chars + null
+    void reserve(int needLen) {            
         if (needLen + 1 <= cap) return;
         int ncap = cap;
         while (ncap < needLen + 1) ncap *= 2;
@@ -217,7 +213,7 @@ public:
 
     String& append(const char* s, int n) {
         if (!s || n <= 0) return *this;
-        if (s >= buf && s <= buf + len) {          // appending part of itself
+        if (s >= buf && s <= buf + len) {          
             String tmp(s, n);
             return append(tmp.buf, n);
         }
@@ -269,7 +265,7 @@ public:
         for (int i = 0; i < r.len; i++) if (r.buf[i] >= 'a' && r.buf[i] <= 'z') r.buf[i] -= 32;
         return r;
     }
-    // replaces every occurrence of a character
+    
     String replaced(char from, char to) const {
         String r(*this);
         for (int i = 0; i < r.len; i++) if (r.buf[i] == from) r.buf[i] = to;
@@ -310,7 +306,7 @@ public:
     static String fromInt(long long v) { String s; s.appendInt(v); return s; }
     static String fromDouble(double v, int decimals) { String s; s.appendDouble(v, decimals); return s; }
 
-    // splits on a single character, keeps empty fields; returns number of parts
+    
     static int split(const String& s, char delim, DynArray<String>& out) {
         out.clear();
         int start = 0;
