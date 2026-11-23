@@ -88,9 +88,9 @@ SimFlightList::SimFlightList(QWidget *parent) : QWidget(parent)
     QVBoxLayout *l = new QVBoxLayout(this);
     l->setContentsMargins(0, 0, 0, 0);
     l->setSpacing(6);
-    l->addWidget(Theme::label(QStringLiteral("Flights departing within 3 hours of the system time"), "h2", this));
+    l->addWidget(Theme::label(QStringLiteral("Flights that arrived within the last 3 hours of the system time"), "h2", this));
     m_table = makeTable(this, QStringList() << QStringLiteral("Flight") << QStringLiteral("Route") << QStringLiteral("Date")
-                                            << QStringLiteral("Departs") << QStringLiteral("Checked in")
+                                            << QStringLiteral("Departed") << QStringLiteral("Arrived") << QStringLiteral("Checked in")
                                             << QStringLiteral("Bags waiting") << QStringLiteral("On belt"));
     m_table->setMinimumHeight(150);
     l->addWidget(m_table, 1);
@@ -144,17 +144,18 @@ void SimFlightList::fill(const QVector<QStringList> &rows)
         setCell(m_table, i, 1, fld(f, 2) + QString::fromUtf8(" \xE2\x86\x92 ") + fld(f, 3));
         setCell(m_table, i, 2, fld(f, 4));
         setCell(m_table, i, 3, fld(f, 5));
-        setCell(m_table, i, 4, fld(f, 7) + QStringLiteral(" / ") + fld(f, 6));
-        setCell(m_table, i, 5, fld(f, 8));
-        setCell(m_table, i, 6, fld(f, 9));
+        setCell(m_table, i, 4, fld(f, 10));
+        setCell(m_table, i, 5, fld(f, 7) + QStringLiteral(" / ") + fld(f, 6));
+        setCell(m_table, i, 6, fld(f, 8));
+        setCell(m_table, i, 7, fld(f, 9));
         if (fld(f, 1) == m_flight && fld(f, 4) == m_date) select = i;
     }
     if (select >= 0) m_table->selectRow(select);
     m_table->blockSignals(false);
 
     m_info->setText(rows.isEmpty()
-        ? QStringLiteral("No flight departs within the next 3 hours of the system time. Change the time on the "
-                         "\"Date and time\" screen (for example 2 hours before a flight).")
+        ? QStringLiteral("No flight has arrived within the last 3 hours of the system time. Change the time on the "
+                         "\"Date and time\" screen to a moment after a flight lands (departure + duration).")
         : QString());
     if (select < 0 && !m_flight.isEmpty()) {            // the selected flight left the window
         m_flight.clear();
@@ -186,7 +187,7 @@ SimulatorHomePage::SimulatorHomePage(MainWindow *mw, QWidget *parent) : BasePage
         QStringLiteral("Move the whole system (booking window, check-in cut-off, belt) to any date and time you like."),
         QStringLiteral("Set date and time"), QStringLiteral("#dbeafe"), QStringLiteral("#2563eb"), this);
     OptionCard *push = new OptionCard(QString::fromUtf8("\xE2\x96\xB6"), QStringLiteral("Put luggage on the belt"),
-        QStringLiteral("Pick a flight departing within 3 hours and a checked-in passenger; the bag crosses the start RFID."),
+        QStringLiteral("After a flight has arrived (within 3 hours), pick a checked-in passenger; the bag crosses the start RFID of the baggage belt."),
         QStringLiteral("Put luggage on belt"), QStringLiteral("#ccfbf1"), QStringLiteral("#0f766e"), this);
     OptionCard *loss = new OptionCard(QString::fromUtf8("\xE2\x9A\xA0"), QStringLiteral("Bag loss"),
         QStringLiteral("Choose a bag that is on the belt and the sensor that will not detect it. Both portals show the loss."),
@@ -230,8 +231,8 @@ SimTimePage::SimTimePage(MainWindow *mw, QWidget *parent) : BasePage(mw, parent)
     l->setContentsMargins(34, 28, 34, 28);
     l->setSpacing(10);
     l->addWidget(Theme::label(QStringLiteral("System date and time"), "h2", card));
-    QLabel *info = Theme::label(QStringLiteral("Everything uses this clock: the one-month booking window, the 3-hour check-in cut-off, "
-                                               "the 3-hour belt window and the belt sensors' time stamps. All laptops follow it at once."), "muted", card);
+    QLabel *info = Theme::label(QStringLiteral("Everything uses this clock: the one-month booking window, the check-in window (3 hours to 30 minutes before departure), "
+                                               "the luggage belt window after arrival and the belt sensors' time stamps. All laptops follow it at once."), "muted", card);
     info->setWordWrap(true);
     l->addWidget(info);
     l->addSpacing(6);
