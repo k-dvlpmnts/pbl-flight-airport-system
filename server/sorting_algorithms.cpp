@@ -79,9 +79,10 @@ void mergeSort(DynArray<T>& a, Cmp cmp) {
     mergeSortRec(a, tmp, 0, a.size() - 1, cmp);
 }
 template <class T, class Cmp>
+emplate <class T, class Cmp>
 void quickSortRec(DynArray<T>& a, int lo, int hi, Cmp cmp) {
     while (hi - lo > 10) {
-        int mid = lo + (hi - lo) / 2;                     // median of three -> a[mid]
+        int mid = lo + (hi - lo) / 2;                     
         if (cmp(a[mid], a[lo]) < 0) swapItems(a, mid, lo);
         if (cmp(a[hi], a[lo]) < 0)  swapItems(a, hi, lo);
         if (cmp(a[hi], a[mid]) < 0) swapItems(a, hi, mid);
@@ -92,7 +93,7 @@ void quickSortRec(DynArray<T>& a, int lo, int hi, Cmp cmp) {
             while (cmp(a[j], pivot) > 0) j--;
             if (i <= j) { swapItems(a, i, j); i++; j--; }
         }
-        // recurse into the smaller part, loop on the larger (bounded stack depth)
+        
         if (j - lo < hi - i) { quickSortRec(a, lo, j, cmp); lo = i; }
         else                 { quickSortRec(a, i, hi, cmp); hi = j; }
     }
@@ -103,7 +104,7 @@ void quickSort(DynArray<T>& a, Cmp cmp) {
     if (a.size() > 1) quickSortRec(a, 0, a.size() - 1, cmp);
 }
 
-// --------------------------------------------------------------------- heap
+
 template <class T, class Cmp>
 void heapSiftDown(DynArray<T>& a, int i, int n, Cmp cmp) {
     for (;;) {
@@ -125,7 +126,6 @@ void heapSort(DynArray<T>& a, Cmp cmp) {
     }
 }
 
-// ------------------------------------------------------------------ helpers
 template <class T, class Cmp>
 bool isSorted(const DynArray<T>& a, Cmp cmp) {
     for (int i = 1; i < a.size(); i++)
@@ -133,7 +133,6 @@ bool isSorted(const DynArray<T>& a, Cmp cmp) {
     return true;
 }
 
-// ------------------------------------------------------------ binary search
 template <class T, class K, class KeyCmp>
 int lowerBound(const DynArray<T>& a, const K& key, KeyCmp cmp) {
     int lo = 0, hi = a.size();                  
@@ -166,6 +165,3 @@ int binarySearch(const DynArray<T>& a, const K& key, KeyCmp cmp) {
     }
     return -1;
 }
-
-}
-#endif
