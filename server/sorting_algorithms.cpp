@@ -1,4 +1,3 @@
-#ifndef SORTING_ALGORITHMS_CPP
 #define SORTING_ALGORITHMS_CPP
 
 #include "data_structures.cpp"
@@ -14,9 +13,8 @@ inline void swapItems(DynArray<T>& a, int i, int j) {
     a[j] = t;
 }
 
-// ---------------------------------------------------------------- insertion
 template <class T, class Cmp>
-void insertionSortRange(DynArray<T>& a, int lo, int hi, Cmp cmp) {   // [lo, hi]
+void insertionSortRange(DynArray<T>& a, int lo, int hi, Cmp cmp) {   
     for (int i = lo + 1; i <= hi; i++) {
         T key = a[i];
         int j = i - 1;
@@ -32,7 +30,6 @@ void insertionSort(DynArray<T>& a, Cmp cmp) {
     if (a.size() > 1) insertionSortRange(a, 0, a.size() - 1, cmp);
 }
 
-// ---------------------------------------------------------------- selection
 template <class T, class Cmp>
 void selectionSort(DynArray<T>& a, Cmp cmp) {
     int n = a.size();
@@ -44,7 +41,6 @@ void selectionSort(DynArray<T>& a, Cmp cmp) {
     }
 }
 
-// ------------------------------------------------------------------- bubble
 template <class T, class Cmp>
 void bubbleSort(DynArray<T>& a, Cmp cmp) {
     int n = a.size();
@@ -60,7 +56,6 @@ void bubbleSort(DynArray<T>& a, Cmp cmp) {
     }
 }
 
-// -------------------------------------------------------------------- merge
 template <class T, class Cmp>
 void mergeSortRec(DynArray<T>& a, DynArray<T>& tmp, int lo, int hi, Cmp cmp) {
     if (hi - lo < 1) return;
@@ -83,8 +78,6 @@ void mergeSort(DynArray<T>& a, Cmp cmp) {
     tmp.resize(a.size());
     mergeSortRec(a, tmp, 0, a.size() - 1, cmp);
 }
-
-// -------------------------------------------------------------------- quick
 template <class T, class Cmp>
 void quickSortRec(DynArray<T>& a, int lo, int hi, Cmp cmp) {
     while (hi - lo > 10) {
